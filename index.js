@@ -47,7 +47,7 @@ function loadJson(filePath, fallback) {
     try {
         return JSON.parse(fs.readFileSync(filePath, 'utf8'));
     } catch (e) {
-        console.error(`Failed to read ${filePath}:`, e.message);
+        console.error('Failed to read ' + filePath + ':', e.message);
         return fallback;
     }
 }
@@ -56,7 +56,7 @@ function saveJson(filePath, data) {
     try {
         fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
     } catch (e) {
-        console.error(`Failed to save ${filePath}:`, e.message);
+        console.error('Failed to save ' + filePath + ':', e.message);
     }
 }
 
@@ -66,7 +66,7 @@ let usedProofs = loadJson(PROOFS_FILE, {
     sms: {}
 });
 
-// ለ Admin በአዝራር ሲጫን የሚጠበቅ የ Credit ዒላማ ({ targetUserId })
+// ለ Admin በአዝራር ሲጫን የሚጠበቅ የ Credit ዒላማ
 let adminPendingCreditTarget = null;
 
 function saveUsers() {
@@ -120,6 +120,13 @@ function smsSentToOwner(text) {
     return validTargets.some((target) => compact.includes(target.replace(/\s+/g, '')) || t.includes(target));
 }
 
+function formatSenderTag(from) {
+    if (!from) return 'User (No username)';
+    const name = from.first_name || 'User';
+    const tag = from.username ? '@' + from.username : 'No username';
+    return name + ' (' + tag + ')';
+}
+
 async function notifyAdmin(fn) {
     if (!ADMIN_ID) return;
     try {
@@ -147,7 +154,7 @@ function getUser(userId) {
             mainWallet: 0,
             playWallet: 100,
             pendingDepositMethod: null,
-            pendingWithdrawMethod: null // 'Telebirr' ወይም 'CBE'
+            pendingWithdrawMethod: null
         };
         saveUsers();
     }
@@ -270,7 +277,7 @@ function getMainKeyboard() {
 function getPlayReplyMarkup(userId) {
     if (APP_URL && APP_URL.startsWith('https://')) {
         return Markup.inlineKeyboard([
-            [Markup.button.webApp('🚀 Open Trust Bingo Mini App', `${APP_URL}?userId=${userId}`)]
+            [Markup.button.webApp('🚀 Open Trust Bingo Mini App', APP_URL + '?userId=' + userId)]
         ]);
     }
     return Markup.inlineKeyboard([
@@ -284,20 +291,20 @@ bot.start((ctx) => {
     user.pendingWithdrawMethod = null;
     saveUsers();
     ctx.reply(
-        `🎉 እንኳን ወደ <b>Trust Bingo</b> በደህና መጣህ!\n\n` +
-        `🏦 Main Wallet: <b>${user.mainWallet.toFixed(2)} ብር</b>\n` +
-        `🎁 Play Wallet: <b>${user.playWallet.toFixed(2)} ብር</b>\n` +
-        `💰 Total Balance: <b>${totalBalance(user).toFixed(2)} ብር</b>\n\n` +
-        `ከታች ካሉት አዝራሮች አንዱን ምረጥ፦`,
+        '🎉 እንኳን ወደ <b>Trust Bingo</b> በደህና መጣህ!\n\n' +
+        '🏦 Main Wallet: <b>' + user.mainWallet.toFixed(2) + ' ብር</b>\n' +
+        '🎁 Play Wallet: <b>' + user.playWallet.toFixed(2) + ' ብር</b>\n' +
+        '💰 Total Balance: <b>' + totalBalance(user).toFixed(2) + ' ብር</b>\n\n' +
+        'ከታች ካሉት አዝራሮች አንዱን ምረጥ፦',
         { parse_mode: 'HTML', ...getMainKeyboard() }
     );
 });
 
 bot.hears(['🎮 Play', '🎮 Play Game'], (ctx) => {
     ctx.reply(
-        `🎮 <b>Trust Bingo Mini App</b> ለመክፈት ከታች ያለውን ቁልፍ ተጫን፦\n` +
-        `• Stake መምረጥ (10 / 20 / 50 ብር)\n` +
-        `• ካርቴላ ሲያዝ ደራሽ (80% pool) በራስ-ሰር ይጨምራል`,
+        '🎮 <b>Trust Bingo Mini App</b> ለመክፈት ከታች ያለውን ቁልፍ ተጫን፦\n' +
+        '• Stake መምረጥ (10 / 20 / 50 ብር)\n' +
+        '• ካርቴላ ሲያዝ ደራሽ (80% pool) በራስ-ሰር ይጨምራል',
         { parse_mode: 'HTML', ...getPlayReplyMarkup(ctx.from.id) }
     );
 });
@@ -305,7 +312,7 @@ bot.hears(['🎮 Play', '🎮 Play Game'], (ctx) => {
 bot.action('need_app_url', (ctx) => {
     ctx.answerCbQuery();
     ctx.reply(
-        `⚠️ በ Render Environment Variables ውስጥ <code>APP_URL</code> (የ https://...onrender.com ሊንክህን) አስገባ።`,
+        '⚠️ በ Render Environment Variables ውስጥ <code>APP_URL</code> (የ https://...onrender.com ሊንክህን) አስገባ።',
         { parse_mode: 'HTML' }
     );
 });
@@ -313,11 +320,11 @@ bot.action('need_app_url', (ctx) => {
 bot.hears(['💳 Check Balance', '💰 ባላንስ (Balance)'], (ctx) => {
     const user = getUser(ctx.from.id);
     ctx.reply(
-        `💰 <b>BALANCE SUMMARY</b> 💰\n\n` +
-        `🏦 Main Wallet: <b>${user.mainWallet.toFixed(2)}</b>\n` +
-        `🎁 Play Wallet: <b>${user.playWallet.toFixed(2)}</b>\n` +
-        `━━━━━━━━━━━━━━━━━━\n` +
-        `💵 Total Balance: <b>${totalBalance(user).toFixed(2)} ብር</b>`,
+        '💰 <b>BALANCE SUMMARY</b> 💰\n\n' +
+        '🏦 Main Wallet: <b>' + user.mainWallet.toFixed(2) + '</b>\n' +
+        '🎁 Play Wallet: <b>' + user.playWallet.toFixed(2) + '</b>\n' +
+        '━━━━━━━━━━━━━━━━━━\n' +
+        '💵 Total Balance: <b>' + totalBalance(user).toFixed(2) + ' ብር</b>',
         { parse_mode: 'HTML' }
     );
 });
@@ -328,7 +335,7 @@ bot.hears('💰 Deposit', (ctx) => {
     user.pendingWithdrawMethod = null;
     saveUsers();
     ctx.reply(
-        `💳 ገንዘብ ለማስገባት የመክፈያ ዘዴ ምረጥ፦`,
+        '💳 ገንዘብ ለማስገባት የመክፈያ ዘዴ ምረጥ፦',
         Markup.inlineKeyboard([
             [
                 Markup.button.callback('📱 Telebirr', 'deposit_Telebirr'),
@@ -346,12 +353,12 @@ bot.action(/^deposit_(Telebirr|CBE)$/, async (ctx) => {
     user.pendingWithdrawMethod = null;
     saveUsers();
 
-    await ctx.answerCbQuery(`${method} ተመርጧል`);
+    await ctx.answerCbQuery(method + ' ተመርጧል');
     await ctx.reply(
-        `✅ <b>${info.label} Deposit</b>\n\n` +
-        `📌 አካውንት / ስልክ፦ <code>${info.account}</code>\n` +
-        `👤 ስም፦ <b>${info.holder}</b>\n\n` +
-        `ክፍያውን ወደ <b>${info.holder} (${info.account})</b> ከፈጸምክ በኋላ <b>የክፍያ ስክሪንሾት (Photo)</b> ወይም <b>የ SMS መልዕክት (SMS Copy)</b> ላክ፦`,
+        '✅ <b>' + info.label + ' Deposit</b>\n\n' +
+        '📌 አካውንት / ስልክ፦ <code>' + info.account + '</code>\n' +
+        '👤 ስም፦ <b>' + info.holder + '</b>\n\n' +
+        'ክፍያውን ወደ <b>' + info.holder + ' (' + info.account + ')</b> ከፈጸምክ በኋላ <b>የክፍያ ስክሪንሾት (Photo)</b> ወይም <b>የ SMS መልዕክት (SMS Copy)</b> ላክ፦',
         { parse_mode: 'HTML' }
     );
 });
@@ -363,9 +370,9 @@ bot.action(/^admin_credit_(\d+)$/, async (ctx) => {
     }
     const targetUserId = ctx.match[1];
     adminPendingCreditTarget = targetUserId;
-    await ctx.answerCbQuery(`User ${targetUserId} ተመርጧል`);
+    await ctx.answerCbQuery('User ' + targetUserId + ' ተመርጧል');
     await ctx.reply(
-        `💳 ለ User ID <code>${targetUserId}</code> የምትጨምረውን የብር መጠን ጻፍ (ለምሳሌ፦ <code>100</code>)፦`,
+        '💳 ለ User ID <code>' + targetUserId + '</code> የምትጨምረውን የብር መጠን ጻፍ (ለምሳሌ፦ <code>100</code>)፦',
         { parse_mode: 'HTML' }
     );
 });
@@ -379,8 +386,8 @@ bot.on('photo', async (ctx) => {
 
     if (usedProofs.photos[uniqueKey]) {
         return ctx.reply(
-            `❌ <b>ስህተት / Wrong!</b>\n` +
-            `ይህ ስክሪንሾት ቀድሞ ተልኳል! ተመሳሳይ ስክሪንሾት እንደገና መላክ ስህተት ነው።`,
+            '❌ <b>ስህተት / Wrong!</b>\n' +
+            'ይህ ስክሪንሾት ቀድሞ ተልኳል! ተመሳሳይ ስክሪንሾት እንደገና መላክ ስህተት ነው።',
             { parse_mode: 'HTML' }
         );
     }
@@ -395,23 +402,23 @@ bot.on('photo', async (ctx) => {
     user.pendingDepositMethod = null;
     saveUsers();
 
-    const caption = ctx.message.caption ? `\n📝 ማስታወሻ፦ ${ctx.message.caption}` : '';
-    const usernameTag = ctx.from.username ? `@${ctx.from.username}` : 'No username';
+    const caption = ctx.message.caption ? '\n📝 ማስታወሻ፦ ' + ctx.message.caption : '';
+    const senderInfo = formatSenderTag(ctx.from);
 
     await ctx.reply(
-        `📸 የ <b>${method}</b> ስክሪንሾትህ ተቀብለናል። አስተዳዳሪው በፎቶው ላይ ስሙ <b>Biniyam</b> እና ቁጥሩ <b>0912698277 / 1000161123726</b> መሆኑን ካረጋገጠ በኋላ ባላንስ ይጨምራል።`,
+        '📸 የ <b>' + method + '</b> ስክሪንሾትህ ተቀብለናል። አስተዳዳሪው በፎቶው ላይ ስሙ <b>Biniyam</b> እና ቁጥሩ <b>0912698277 / 1000161123726</b> መሆኑን ካረጋገጠ በኋላ ባላንስ ይጨምራል።',
         { parse_mode: 'HTML' }
     );
 
     await notifyAdmin((adminId) =>
         ctx.telegram.sendPhoto(adminId, photo.file_id, {
             caption:
-                `🔔 አዲስ Deposit Screenshot (${method})\n` +
-                `👤 User ID: ${ctx.from.id}\n` +
-                `📛 Name: ${ctx.from.first_name || 'User'} (${usernameTag})${caption}\n` +
-                `⚠️ በስክሪንሾቱ ላይ Biniyam (0912698277 / 1000161123726) መሆኑን አረጋግጥ!`,
+                '🔔 አዲስ Deposit Screenshot (' + method + ')\n' +
+                '👤 User ID: ' + ctx.from.id + '\n' +
+                '📛 Name: ' + senderInfo + caption + '\n' +
+                '⚠️ በስክሪንሾቱ ላይ Biniyam (0912698277 / 1000161123726) መሆኑን አረጋግጥ!',
             ...Markup.inlineKeyboard([
-                [Markup.button.callback(`💳 Credit User (${ctx.from.id})`, `admin_credit_${ctx.from.id}`)]
+                [Markup.button.callback('💳 Credit User (' + ctx.from.id + ')', 'admin_credit_' + ctx.from.id)]
             ])
         })
     );
@@ -430,13 +437,13 @@ bot.command('credit', (ctx) => {
 
     const updatedUser = creditUserWallet(targetId, amount);
     ctx.reply(
-        `✅ ለ User <code>${targetId}</code> <b>+${amount.toFixed(2)} ብር</b> ወደ Main Wallet በራስ-ሰር ገብቷል።\n` +
-        `🏦 አዲስ Main Wallet፦ <b>${updatedUser.mainWallet.toFixed(2)} ብር</b>`,
+        '✅ ለ User <code>' + targetId + '</code> <b>+' + amount.toFixed(2) + ' ብር</b> ወደ Main Wallet በራስ-ሰር ገብቷል።\n' +
+        '🏦 አዲስ Main Wallet፦ <b>' + updatedUser.mainWallet.toFixed(2) + ' ብር</b>',
         { parse_mode: 'HTML' }
     );
     ctx.telegram.sendMessage(
         targetId,
-        `🎉 የ Deposit ክፍያህ ተረጋግጧል! <b>+${amount.toFixed(2)} ብር</b> ወደ Main Wallet ገብቷል።`,
+        '🎉 የ Deposit ክፍያህ ተረጋግጧል! <b>+' + amount.toFixed(2) + ' ብር</b> ወደ Main Wallet ገብቷል።',
         { parse_mode: 'HTML' }
     ).catch(() => {});
 });
@@ -450,15 +457,15 @@ bot.hears('💸 Withdraw', (ctx) => {
 
     if (user.mainWallet < MIN_WITHDRAW) {
         return ctx.reply(
-            `⚠️ ዝቅተኛው የማውጣት መጠን (Main Wallet) <b>${MIN_WITHDRAW} ብር</b> ነው።\n` +
-            `🏦 Main Wallet: <b>${user.mainWallet.toFixed(2)} ብር</b>`,
+            '⚠️ ዝቅተኛው የማውጣት መጠን (Main Wallet) <b>' + MIN_WITHDRAW + ' ብር</b> ነው።\n' +
+            '🏦 Main Wallet: <b>' + user.mainWallet.toFixed(2) + ' ብር</b>',
             { parse_mode: 'HTML' }
         );
     }
 
     ctx.reply(
-        `💸 ገንዘቡን ለመቀበል የምትፈልገውን መንገድ ምረጥ፦\n` +
-        `🏦 የሚወጣው Main Wallet፦ <b>${user.mainWallet.toFixed(2)} ብር</b>`,
+        '💸 ገንዘቡን ለመቀበል የምትፈልገውን መንገድ ምረጥ፦\n' +
+        '🏦 የሚወጣው Main Wallet፦ <b>' + user.mainWallet.toFixed(2) + ' ብር</b>',
         {
             parse_mode: 'HTML',
             ...Markup.inlineKeyboard([
@@ -483,34 +490,34 @@ bot.action(/^withdraw_(Telebirr|CBE)$/, async (ctx) => {
     user.pendingWithdrawMethod = method;
     saveUsers();
 
-    await ctx.answerCbQuery(`${method} ተመርጧል`);
+    await ctx.answerCbQuery(method + ' ተመርጧል');
     const promptDetail =
         method === 'Telebirr'
             ? 'የ <b>Telebirr ስምህን</b> እና <b>ስልክ ቁጥርህን</b> ጻፍ (ለምሳሌ፦ <code>Abebe Kebede - 0911223344</code>)፦'
             : 'የ <b>CBE ስምህን</b> እና <b>አካውንት ቁጥርህን</b> ጻፍ (ለምሳሌ፦ <code>Abebe Kebede - 1000123456789</code>)፦';
 
     await ctx.reply(
-        `✅ <b>${method} Withdraw</b>\n${promptDetail}`,
+        '✅ <b>' + method + ' Withdraw</b>\n' + promptDetail,
         { parse_mode: 'HTML' }
     );
 });
 
 bot.hears('🎁 Invite', (ctx) => {
     const botUsername = ctx.botInfo && ctx.botInfo.username ? ctx.botInfo.username : 'Trusttbingobot';
-    const refLink = `https://t.me/${botUsername}?start=ref_${ctx.from.id}`;
+    const refLink = 'https://t.me/' + botUsername + '?start=ref_' + ctx.from.id;
     ctx.reply(
-        `🎁 <b>ጓደኞችህን ጋብዝ!</b>\n\n` +
-        `የመጋበዣ ሊንክህ፦\n<code>${refLink}</code>`,
+        '🎁 <b>ጓደኞችህን ጋብዝ!</b>\n\n' +
+        'የመጋበዣ ሊንክህ፦\n<code>' + refLink + '</code>',
         { parse_mode: 'HTML' }
     );
 });
 
 bot.hears(['📖 How To Play', 'ℹ️ መረጃ (Info)'], (ctx) => {
     ctx.reply(
-        `📖 <b>የአጫዋወት መመሪያ (Trust Bingo)</b>\n\n` +
-        `1️⃣ <b>Play</b> በመጫን Stake (10 / 20 / 50 ብር) ምረጥ።\n` +
-        `2️⃣ ካርቴላ ስትይዝ ደራሽ (80% pool) በራስ-ሰር ይጨምራል።\n` +
-        `3️⃣ ክፍያ ወደ <b>Biniyam (0912698277 / 1000161123726)</b> ፈጽመህ ስክሪንሾት ወይም SMS ላክ፤ Withdraw ስትጠይቅ የ Telebirr/CBE ስም እና ቁጥር/አካውንት ጻፍ።`,
+        '📖 <b>የአጫዋወት መመሪያ (Trust Bingo)</b>\n\n' +
+        '1️⃣ <b>Play</b> በመጫን Stake (10 / 20 / 50 ብር) ምረጥ።\n' +
+        '2️⃣ ካርቴላ ስትይዝ ደራሽ (80% pool) በራስ-ሰር ይጨምራል።\n' +
+        '3️⃣ ክፍያ ወደ <b>Biniyam (0912698277 / 1000161123726)</b> ፈጽመህ ስክሪንሾት ወይም SMS ላክ፤ Withdraw ስትጠይቅ የ Telebirr/CBE ስም እና ቁጥር/አካውንት ጻፍ።',
         { parse_mode: 'HTML' }
     );
 });
@@ -532,13 +539,13 @@ bot.on('text', async (ctx, next) => {
 
         const updatedUser = creditUserWallet(targetId, amount);
         await ctx.reply(
-            `✅ ለ User <code>${targetId}</code> <b>+${amount.toFixed(2)} ብር</b> ወደ Main Wallet በራስ-ሰር ተጨምሯል!\n` +
-            `🏦 አዲስ Main Wallet፦ <b>${updatedUser.mainWallet.toFixed(2)} ብር</b>`,
+            '✅ ለ User <code>' + targetId + '</code> <b>+' + amount.toFixed(2) + ' ብር</b> ወደ Main Wallet በራስ-ሰር ተጨምሯል!\n' +
+            '🏦 አዲስ Main Wallet፦ <b>' + updatedUser.mainWallet.toFixed(2) + ' ብር</b>',
             { parse_mode: 'HTML' }
         );
         ctx.telegram.sendMessage(
             targetId,
-            `🎉 የ Deposit ክፍያህ ተረጋግጧል! <b>+${amount.toFixed(2)} ብር</b> ወደ Main Wallet ገብቷል።`,
+            '🎉 የ Deposit ክፍያህ ተረጋግጧል! <b>+' + amount.toFixed(2) + ' ብር</b> ወደ Main Wallet ገብቷል።',
             { parse_mode: 'HTML' }
         ).catch(() => {});
         return;
@@ -554,33 +561,33 @@ bot.on('text', async (ctx, next) => {
         if (user.mainWallet < MIN_WITHDRAW) {
             user.pendingWithdrawMethod = null;
             saveUsers();
-            return ctx.reply(`⚠️ በቂ Main Wallet የለም (ዝቅተኛው ${MIN_WITHDRAW} ብር ነው)።`);
+            return ctx.reply('⚠️ በቂ Main Wallet የለም (ዝቅተኛው ' + MIN_WITHDRAW + ' ብር ነው)።');
         }
 
         const method = user.pendingWithdrawMethod;
         const withdrawAmount = Number(user.mainWallet.toFixed(2));
-        user.mainWallet = 0; // ባላንሱን ወደ 0 በመቀነስ (minimize/deduct) ማስቀመጥ
+        user.mainWallet = 0;
         user.pendingWithdrawMethod = null;
         saveUsers();
 
-        const usernameTag = ctx.from.username ? `@${ctx.from.username}` : 'No username';
+        const senderInfo = formatSenderTag(ctx.from);
 
         await ctx.reply(
-            `✅ የ <b>${withdrawAmount.toFixed(2)} ብር</b> የ Withdraw ጥያቄህ በ <b>${method}</b> ተመዝግቧል!\n` +
-            `📌 የተላከ መረጃ፦ <code>${rawText}</code>\n` +
-            `🏦 ቀሪ Main Wallet፦ <b>0.00 ብር</b>`,
+            '✅ የ <b>' + withdrawAmount.toFixed(2) + ' ብር</b> የ Withdraw ጥያቄህ በ <b>' + method + '</b> ተመዝግቧል!\n' +
+            '📌 የተላከ መረጃ፦ <code>' + rawText + '</code>\n' +
+            '🏦 ቀሪ Main Wallet፦ <b>0.00 ብር</b>',
             { parse_mode: 'HTML' }
         );
 
         await notifyAdmin((adminId) =>
             ctx.telegram.sendMessage(
                 adminId,
-                `💸 <b>አዲስ Withdraw ጥያቄ (${method})</b>\n\n` +
-                `👤 User ID: <code>${ctx.from.id}</code>\n` +
-                `📛 Name: ${ctx.from.first_name || 'User'} (${usernameTag})\n` +
-                `💵 የሚወጣ መጠን: <b>${withdrawAmount.toFixed(2)} ብር</b>\n` +
-                `🏦 የመቀበያ ዝርዝር (${method}): <code>${rawText}</code>\n\n` +
-                `ክፍያውን ከላክክ በኋላ ማረጋገጥ ትችላለህ።`,
+                '💸 <b>አዲስ Withdraw ጥያቄ (' + method + ')</b>\n\n' +
+                '👤 User ID: <code>' + ctx.from.id + '</code>\n' +
+                '📛 Name: ' + senderInfo + '\n' +
+                '💵 የሚወጣ መጠን: <b>' + withdrawAmount.toFixed(2) + ' ብር</b>\n' +
+                '🏦 የመቀበያ ዝርዝር (' + method + '): <code>' + rawText + '</code>\n\n' +
+                'ክፍያውን ከላክክ በኋላ ማረጋገጥ ትችላለህ።',
                 { parse_mode: 'HTML' }
             )
         );
@@ -594,16 +601,16 @@ bot.on('text', async (ctx, next) => {
 
     if (!looksLikePaymentSms(rawText)) {
         return ctx.reply(
-            `❌ <b>ስህተት / Wrong!</b>\n` +
-            `እባክህ ወደ <b>Biniyam (0912698277 / 1000161123726)</b> የከፈልክበትን <b>ትክክለኛ የ SMS መልዕክት</b> ወይም <b>ስክሪንሾት (Photo)</b> ላክ።`,
+            '❌ <b>ስህተት / Wrong!</b>\n' +
+            'እባክህ ወደ <b>Biniyam (0912698277 / 1000161123726)</b> የከፈልክበትን <b>ትክክለኛ የ SMS መልዕክት</b> ወይም <b>ስክሪንሾት (Photo)</b> ላክ።',
             { parse_mode: 'HTML' }
         );
     }
 
     if (!smsSentToOwner(rawText)) {
         return ctx.reply(
-            `❌ <b>ስህተት / Wrong!</b>\n` +
-            `ይህ የክፍያ SMS ወደ <b>Biniyam (0912698277 / 1000161123726)</b> የተላከ አይደለም! ለሌላ ሰው የተላከ ማስረጃ ተቀባይነት የለውም።`,
+            '❌ <b>ስህተት / Wrong!</b>\n' +
+            'ይህ የክፍያ SMS ወደ <b>Biniyam (0912698277 / 1000161123726)</b> የተላከ አይደለም! ለሌላ ሰው የተላከ ማስረጃ ተቀባይነት የለውም።',
             { parse_mode: 'HTML' }
         );
     }
@@ -611,20 +618,12 @@ bot.on('text', async (ctx, next) => {
     const smsHash = hashText(rawText);
     if (usedProofs.sms[smsHash]) {
         return ctx.reply(
-            `❌ <b>ስህተት / Wrong!</b>\n` +
-            `ይህ የ SMS መልዕክት ቀድሞ ተልኳል! ተመሳሳይ SMS ደጋግሞ መላክ ስህተት ነው።`,
+            '❌ <b>ስህተት / Wrong!</b>\n' +
+            'ይህ የ SMS መልዕክት ቀድሞ ተልኳል! ተመሳሳይ SMS ደጋግሞ መላክ ስህተት ነው።',
             { parse_mode: 'HTML' }
         );
     }
 
     usedProofs.sms[smsHash] = {
         userId: senderId,
-        method,
-        usedAt: new Date().toISOString()
-    };
-    saveProofs();
-
-    user.pendingDepositMethod = null;
-    saveUsers();
-
-    const usernameTag = ctx.from.username ? `@${ctx.from.username}` : 'No usernam
+    

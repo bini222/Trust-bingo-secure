@@ -5,6 +5,11 @@ const path = require('path');
 const crypto = require('crypto');
 require('dotenv').config();
 
+if (!process.env.BOT_TOKEN) {
+    console.error('ERROR: BOT_TOKEN is missing in environment variables.');
+    process.exit(1);
+}
+
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const app = express();
 app.use(express.json());
@@ -84,22 +89,42 @@ function looksLikePaymentSms(text) {
         'paid to', 'transferred', 'debited', 'credited', 'receipt', 'tx id',
         'ብር', 'ክፍያ', 'ተላልፏል', 'ደረሰኝ', '2519', '09', '1000'
     ];
-    return t.length >= 25 && keywords.some((kw) => t.includes(kw));
+    return t.length >= 20 && keywords.some((kw) => t.includes(kw));
 }
 
-// ገንዘቡ ወደ አንተ (0912698277 / 1000161123726 / Biniyam) መላኩን ማረጋገጫ
+// ገንዘቡ ወደ Biniyam (0912698277 / 251912698277 / 1000161123726) መላኩን ማረጋገጫ
 function smsSentToOwner(text) {
     const t = normalizeText(text);
-    const compact = t.replace(/[\s\-+]/g, '');
+    const compact = t.replace(/[\s\-+*]/g, '');
+
+    // ገንዘቡ ወደ ሌላ ሰው ስም ወይም ቁጥር የተላከ ከሆነ ውድቅ አድርግ
+    const sentToOtherPerson =
+        t.includes('to birhanu') ||
+        compact.includes('2519****6699') ||
+        /transferred\s+(?:etb|birr)?\s*[\d,.]+\s+(?:etb|birr)?\s*to\s+(?!biniyam\b)/i.test(text) ||
+        /paid\s+(?:etb|birr)?\s*[\d,.]+\s+(?:etb|birr)?\s*to\s+(?!biniyam\b)/i.test(text);
+
+    if (sentToOtherPerson) {
+        return false;
+    }
 
     const validTargets = [
         '0912698277',
         '251912698277',
         '1000161123726',
-        'biniyam'
+        'to biniyam'
     ];
 
-    return validTargets.some((target) => compact.includes(target) || t.includes(target));
+    return validTargets.some((target) => compact.includes(target.replace(/\s+/g, '')) || t.includes(target));
+}
+
+async function notifyAdmin(fn) {
+    if (!ADMIN_ID) return;
+    try {
+        await fn(ADMIN_ID);
+    } catch (err) {
+        console.error('Admin notification error:', err.message);
+    }
 }
 
 function getUser(userId) {
@@ -311,7 +336,7 @@ bot.action(/^deposit_(Telebirr|CBE)$/, async (ctx) => {
     );
 });
 
-// --- ስክሪንሾት መቀበል እና የተደጋገመ ስክሪንሾት መከላከል ---
+// --- ስክሪንሾት መቀበል፣ የተደጋገመ መከላከል እና ወደ Admin መላክ ---
 bot.on('photo', async (ctx) => {
     const user = getUser(ctx.from.id);
     const method = user.pendingDepositMethod || 'Telebirr / CBE';
@@ -321,7 +346,7 @@ bot.on('photo', async (ctx) => {
     if (usedProofs.photos[uniqueKey]) {
         return ctx.reply(
             `❌ <b>ስህተት / Wrong!</b>\n` +
-            `ይህ ስክሪንሾት ቀድሞ ተልኳል / ጥቅም ላይ ውሏል። ተመሳሳይ ስክሪንሾት እንደገና መላክ አይቻልም!`,
+            `ይህ ስክሪንሾት ቀድሞ ተልኳል! ተመሳሳይ ስክሪንሾት እንደገና መላክ ስህተት ነው።`,
             { parse_mode: 'HTML' }
         );
     }
@@ -337,25 +362,23 @@ bot.on('photo', async (ctx) => {
     saveUsers();
 
     const caption = ctx.message.caption ? `\n📝 ማስታወሻ፦ ${ctx.message.caption}` : '';
+    const usernameTag = ctx.from.username ? `@${ctx.from.username}` : 'No username';
+
     await ctx.reply(
         `📸 የ <b>${method}</b> ስክሪንሾትህ ተቀብለናል። አስተዳዳሪው በፎቶው ላይ ስሙ <b>Biniyam</b> እና ቁጥሩ <b>0912698277 / 1000161123726</b> መሆኑን ካረጋገጠ በኋላ ባላንስ ይጨምራል።`,
         { parse_mode: 'HTML' }
     );
 
-    if (ADMIN_ID) {
-        try {
-            await ctx.telegram.sendPhoto(ADMIN_ID, photo.file_id, {
-                caption:
-                    `🔔 አዲስ Deposit Screenshot (${method})\n` +
-                    `👤 User ID: ${ctx.from.id}\n` +
-                    `📛 Name: ${ctx.from.first_name || 'User'}${caption}\n` +
-                    `⚠️ በስክሪንሾቱ ላይ የተቀባይ ስም Biniyam እና ቁጥር 0912698277 / 1000161123726 መሆኑን አረጋግጥ!\n\n` +
-                    `ባላንስ ለመጨመር፦ /credit ${ctx.from.id} <amount>`
-            });
-        } catch (e) {
-            console.error('Failed to forward screenshot to admin:', e.message);
-        }
-    }
+    await notifyAdmin((adminId) =>
+        ctx.telegram.sendPhoto(adminId, photo.file_id, {
+            caption:
+                `🔔 አዲስ Deposit Screenshot (${method})\n` +
+                `👤 User ID: ${ctx.from.id}\n` +
+                `📛 Name: ${ctx.from.first_name || 'User'} (${usernameTag})${caption}\n` +
+                `⚠️ በስክሪንሾቱ ላይ Biniyam (0912698277 / 1000161123726) መሆኑን አረጋግጥ!\n\n` +
+                `ባላንስ ለመጨመር፦ /credit ${ctx.from.id} <amount>`
+        })
+    );
 });
 
 // --- ለ Admin ባላንስ መጨመር ---
@@ -421,7 +444,7 @@ bot.hears(['📖 How To Play', 'ℹ️ መረጃ (Info)'], (ctx) => {
     );
 });
 
-// --- SMS ኮፒ እና የገንዘብ መጠን መቀበል ---
+// --- SMS ኮፒ መቀበል፣ ማረጋገጥ እና ወደ Admin መላክ ---
 bot.on('text', async (ctx, next) => {
     const user = getUser(ctx.from.id);
     const rawText = ctx.message.text.trim();
@@ -430,74 +453,57 @@ bot.on('text', async (ctx, next) => {
 
     const method = user.pendingDepositMethod;
 
-    // 1. የተላከው ጽሁፍ የ SMS መልዕክት ከመሰለ
-    if (looksLikePaymentSms(rawText)) {
-        // ገንዘቡ ወደ አንተ አካውንት/ስም መላኩን ማረጋገጥ
-        if (!smsSentToOwner(rawText)) {
-            return ctx.reply(
-                `❌ <b>ስህተት / Wrong!</b>\n` +
-                `ይህ የክፍያ SMS ወደ <b>Biniyam (0912698277 / 1000161123726)</b> የተላከ አይመስልም! ለሌላ ሰው የተላከ ማስረጃ ተቀባይነት የለውም።`,
-                { parse_mode: 'HTML' }
-            );
-        }
-
-        // የተደጋገመ SMS መሆኑን ማረጋገጥ
-        const smsHash = hashText(rawText);
-        if (usedProofs.sms[smsHash]) {
-            return ctx.reply(
-                `❌ <b>ስህተት / Wrong!</b>\n` +
-                `ይህ የ SMS መልዕክት ቀድሞ ተልኳል! ተመሳሳይ SMS ደጋግሞ መላክ ስህተት ነው!`,
-                { parse_mode: 'HTML' }
-            );
-        }
-
-        usedProofs.sms[smsHash] = {
-            userId: String(ctx.from.id),
-            method,
-            usedAt: new Date().toISOString()
-        };
-        saveProofs();
-
-        user.pendingDepositMethod = null;
-        saveUsers();
-
-        await ctx.reply(
-            `📩 የ <b>${method}</b> SMS ማስረጃህ (ወደ Biniyam የተላከ) ተመዝግቧል! ለማረጋገጫ በተጠባባሽ (Pending) ተይዟል።`,
-            { parse_mode: 'HTML' }
-        );
-
-        if (ADMIN_ID) {
-            ctx.telegram.sendMessage(
-                ADMIN_ID,
-                `🔔 አዲስ Deposit SMS (${method})\n` +
-                `👤 User ID: ${ctx.from.id}\n` +
-                `📛 Name: ${ctx.from.first_name || 'User'}\n` +
-                `💬 SMS:\n${rawText}\n\n` +
-                `ባላንስ ለመጨመር፦ /credit ${ctx.from.id} <amount>`
-            ).catch(() => {});
-        }
-        return;
-    }
-
-    // 2. በቁጥር የተላከ የገንዘብ መጠን ከሆነ
-    const amount = Number(rawText);
-    if (!Number.isFinite(amount) || amount <= 0) {
+    if (!looksLikePaymentSms(rawText)) {
         return ctx.reply(
             `❌ <b>ስህተት / Wrong!</b>\n` +
-            `እባክህ ትክክለኛ የክፍያ ስክሪንሾት (Photo)፣ ወደ <b>Biniyam</b> የተላከ የ SMS መልዕክት፣ ወይም የብር መጠን ላክ።`,
+            `እባክህ ወደ <b>Biniyam (0912698277 / 1000161123726)</b> የከፈልክበትን <b>ትክክለኛ የ SMS መልዕክት</b> ወይም <b>ስክሪንሾት (Photo)</b> ላክ።`,
             { parse_mode: 'HTML' }
         );
     }
 
+    if (!smsSentToOwner(rawText)) {
+        return ctx.reply(
+            `❌ <b>ስህተት / Wrong!</b>\n` +
+            `ይህ የክፍያ SMS ወደ <b>Biniyam (0912698277 / 1000161123726)</b> የተላከ አይደለም! ለሌላ ሰው የተላከ ማስረጃ ተቀባይነት የለውም።`,
+            { parse_mode: 'HTML' }
+        );
+    }
+
+    const smsHash = hashText(rawText);
+    if (usedProofs.sms[smsHash]) {
+        return ctx.reply(
+            `❌ <b>ስህተት / Wrong!</b>\n` +
+            `ይህ የ SMS መልዕክት ቀድሞ ተልኳል! ተመሳሳይ SMS ደጋግሞ መላክ ስህተት ነው።`,
+            { parse_mode: 'HTML' }
+        );
+    }
+
+    usedProofs.sms[smsHash] = {
+        userId: String(ctx.from.id),
+        method,
+        usedAt: new Date().toISOString()
+    };
+    saveProofs();
+
     user.pendingDepositMethod = null;
-    user.mainWallet = Number((user.mainWallet + amount).toFixed(2));
     saveUsers();
 
-    ctx.reply(
-        `✅ በ <b>${method}</b> የ <b>${amount.toFixed(2)} ብር</b> ገቢ ተመዝግቧል!\n` +
-        `🏦 Main Wallet: <b>${user.mainWallet.toFixed(2)} ብር</b>\n` +
-        `💰 Total Balance: <b>${totalBalance(user).toFixed(2)} ብር</b>`,
+    const usernameTag = ctx.from.username ? `@${ctx.from.username}` : 'No username';
+
+    await ctx.reply(
+        `📩 የ <b>${method}</b> SMS ማስረጃህ ተመዝግቧል! ለማረጋገጫ በተጠባባሽ (Pending) ተይዟል።`,
         { parse_mode: 'HTML' }
+    );
+
+    await notifyAdmin((adminId) =>
+        ctx.telegram.sendMessage(
+            adminId,
+            `🔔 አዲስ Deposit SMS (${method})\n` +
+            `👤 User ID: ${ctx.from.id}\n` +
+            `📛 Name: ${ctx.from.first_name || 'User'} (${usernameTag})\n` +
+            `💬 SMS:\n${rawText}\n\n` +
+            `ባላንስ ለመጨመር፦ /credit ${ctx.from.id} <amount>`
+        )
     );
 });
 
@@ -615,4 +621,4 @@ app.listen(PORT, '0.0.0.0', () => {
 
 bot.launch();
 console.log('Trust Bingo Bot is running... 🚀');
-        
+                                    

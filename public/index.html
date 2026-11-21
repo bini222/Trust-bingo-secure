@@ -50,8 +50,7 @@
       background: #faf6ff; color: #1e1830; font-size: 11px; font-weight: 800; cursor: pointer;
     }
     .num-btn.mine { background: #16a34a; color: #fff; border-color: #16a34a; }
-    .num-btn.ai { background: #6b21a8; color: #fff; border-color: #6b21a8; cursor: not-allowed; }
-    .num-btn.taken { background: #9b8eb3; color: #f3effa; cursor: not-allowed; }
+    .num-btn.ai { background: #6b21a8; color: #fff; border-color: #6b21a8; }
     .start-main-btn {
       width: 100%; padding: 13px; border: none; border-radius: 12px;
       background: #d97706; color: #fff; font-size: 15px; font-weight: 900; cursor: pointer;
@@ -176,8 +175,8 @@
 
   <div class="container">
     <div class="mode-switch">
-      <button class="mode-btn active" id="tabBingoBtn">🎲 Bingo (1-75)</button>
-      <button class="mode-btn" id="tabKenoBtn">🎱 Keno (1-40 • 10 Balls)</button>
+      <button type="button" class="mode-btn active" id="tabBingoBtn" onclick="switchMode('bingo')">🎲 Bingo (1-75)</button>
+      <button type="button" class="mode-btn" id="tabKenoBtn" onclick="switchMode('keno')">🎱 Keno (1-40 • 10 Balls)</button>
     </div>
 
     <div id="bingoSection">
@@ -196,9 +195,9 @@
             <span id="lobbyDerash">ደራሽ፦ 0 ብር</span>
           </div>
           <div class="stakes">
-            <button class="stake-btn active" data-stake="10">10 ብር</button>
-            <button class="stake-btn" data-stake="20">20 ብር</button>
-            <button class="stake-btn" data-stake="50">50 ብር</button>
+            <button type="button" class="stake-btn active" id="st10" onclick="pickStake(10)">10 ብር</button>
+            <button type="button" class="stake-btn" id="st20" onclick="pickStake(20)">20 ብር</button>
+            <button type="button" class="stake-btn" id="st50" onclick="pickStake(50)">50 ብር</button>
           </div>
         </div>
 
@@ -210,7 +209,7 @@
           <div class="grid-300" id="cartelaGrid"></div>
         </div>
 
-        <button class="start-main-btn" id="startGameBtn">ጨዋታ ጀምር (Play)</button>
+        <button type="button" class="start-main-btn" id="startGameBtn" onclick="startBingoGame()">ጨዋታ ጀምር (Play)</button>
       </div>
 
       <div id="gameView" style="display:none;">
@@ -243,9 +242,9 @@
             <div class="recent-calls-box" id="recentCallsBox"></div>
 
             <div class="controls-strip">
-              <button class="mini-ctrl-btn" id="soundToggleBtn">🔊 Sound</button>
+              <button type="button" class="mini-ctrl-btn" id="soundToggleBtn" onclick="toggleSound()">🔊 Sound</button>
               <span id="cartelaBadgeText">Cartela #0</span>
-              <button class="auto-toggle" id="autoMarkBtn">Auto OFF</button>
+              <button type="button" class="auto-toggle" id="autoMarkBtn" onclick="toggleAutoMark()">Auto OFF</button>
             </div>
 
             <div class="player-area-card" id="playerAreaCard">
@@ -268,16 +267,16 @@
           <span id="kenoPickCount">0/5 ተመርጧል</span>
         </div>
         <div class="stakes">
-          <button class="stake-btn keno-stake active" data-kstake="10">10 ብር</button>
-          <button class="stake-btn keno-stake" data-kstake="20">20 ብር</button>
-          <button class="stake-btn keno-stake" data-kstake="50">50 ብር</button>
+          <button type="button" class="stake-btn active" id="ks10" onclick="pickKenoStake(10)">10 ብር</button>
+          <button type="button" class="stake-btn" id="ks20" onclick="pickKenoStake(20)">20 ብር</button>
+          <button type="button" class="stake-btn" id="ks50" onclick="pickKenoStake(50)">50 ብር</button>
         </div>
       </div>
 
       <div class="lobby-card">
         <div class="lobby-head">
           <span>ከ 1–40 እስከ 5 ቁጥሮች ምረጥ</span>
-          <button class="mini-ctrl-btn" id="kenoClearBtn">አጽዳ</button>
+          <button type="button" class="mini-ctrl-btn" onclick="clearKeno()">አጽዳ</button>
         </div>
         <div class="keno-grid" id="kenoGrid"></div>
 
@@ -289,191 +288,188 @@
           <span id="kenoWinText">Win: 0 ብር</span>
         </div>
 
-        <button class="start-main-btn" id="kenoDrawBtn">10 ቁጥሮች አውጣ (Draw 10)</button>
+        <button type="button" class="start-main-btn" id="kenoDrawBtn" onclick="runKenoDraw()">10 ቁጥሮች አውጣ (Draw 10)</button>
       </div>
     </div>
   </div>
 
   <div class="bottom-actions" id="bottomBar" style="display:none;">
-    <button class="act-leave" id="leaveBtn">⬅ Leave</button>
-    <button class="act-refresh" id="refreshBtn">↻ Refresh</button>
-    <button class="act-bingo" id="bingoBtn">Bingo!</button>
+    <button type="button" class="act-leave" onclick="leaveGame()">⬅ Leave</button>
+    <button type="button" class="act-refresh" onclick="refreshArena()">↻ Refresh</button>
+    <button type="button" class="act-bingo" onclick="claimBingo()">Bingo!</button>
   </div>
 
   <script>
-    const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+    var tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
     try { if (tg) { tg.ready(); tg.expand(); } } catch (e) {}
 
-    const params = new URLSearchParams(window.location.search);
-    const tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null;
-    const userId = String(tgUser || params.get('userId') || 'guest');
+    var balance = 100;
+    var stake = 10;
+    var myCartelas = [];
+    var aiCartela = null;
+    var aiCard = null;
+    var aiMarked = { FREE: true };
 
-    let currentBalance = 100;
-    let currentStake = 10;
-    let myCartelas = [];
-    let takenCartelas = [];
-    let aiCartelaId = null;
-    let aiCard = null;
-    let aiMarked = new Set(['FREE']);
+    var gameId = '';
+    var drawOrder = [];
+    var calledMap = {};
+    var latestNum = null;
+    var drawPos = 0;
+    var recentCalls = [];
+    var derash = 0;
+    var activeBoards = [];
+    var gameEnded = false;
 
-    let gameId = '';
-    let drawOrder = [];
-    let calledSet = new Set();
-    let latestNum = null;
-    let drawPos = 0;
-    let recentCalls = [];
-    let currentDerash = 0;
-    let activeBoards = [];
-    let gameEnded = false;
+    var soundOn = true;
+    var autoMarkOn = false;
+    var autoTimer = null;
+    var cdSec = 10;
+    var cdTimer = null;
 
-    let soundOn = true;
-    let autoMarkOn = false;
-    let autoCallTimer = null;
-    let countdownSec = 10;
-    let countdownTimer = null;
+    var kenoStake = 10;
+    var kenoPicked = [];
+    var kenoDrawn = [];
+    var kenoBusy = false;
 
-    let kenoStake = 10;
-    let kenoPicked = new Set();
-    let kenoDrawn = new Set();
-    let kenoDrawing = false;
-
-    function showAlert(msg) {
+    function msgBox(txt) {
       try {
-        if (tg && typeof tg.showAlert === 'function') tg.showAlert(msg);
-        else alert(msg);
+        if (tg && typeof tg.showAlert === 'function') tg.showAlert(txt);
+        else alert(txt);
       } catch (e) {
-        alert(msg);
+        alert(txt);
       }
     }
 
-    function setBalance(val) {
-      const n = Number(val);
-      currentBalance = Number.isFinite(n) ? n : 100;
-      document.getElementById('balPill').textContent = 'Balance: ' + currentBalance.toFixed(2) + ' ብር';
+    function setBal(v) {
+      balance = Number(v);
+      if (isNaN(balance)) balance = 100;
+      document.getElementById('balPill').textContent = 'Balance: ' + balance.toFixed(2) + ' ብር';
     }
 
-    function letterFor(num) {
-      if (num <= 15) return 'B';
-      if (num <= 30) return 'I';
-      if (num <= 45) return 'N';
-      if (num <= 60) return 'G';
-      return 'O';
-    }
+    function switchMode(mode) {
+      var bSec = document.getElementById('bingoSection');
+      var kSec = document.getElementById('kenoSection');
+      var bTab = document.getElementById('tabBingoBtn');
+      var kTab = document.getElementById('tabKenoBtn');
+      var bot = document.getElementById('bottomBar');
+      var gView = document.getElementById('gameView');
 
-    function speak(text) {
-      if (!soundOn) return;
-      try {
-        if ('speechSynthesis' in window) {
-          window.speechSynthesis.cancel();
-          const u = new SpeechSynthesisUtterance(text);
-          u.rate = 1.05;
-          window.speechSynthesis.speak(u);
-        }
-      } catch (e) {}
-    }
-
-    function renderGrid300() {
-      const grid = document.getElementById('cartelaGrid');
-      grid.innerHTML = '';
-      for (let i = 1; i <= 300; i++) {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'num-btn';
-        btn.textContent = String(i);
-        if (myCartelas.includes(i)) {
-          btn.classList.add('mine');
-        } else if (i === aiCartelaId) {
-          btn.classList.add('ai');
-          btn.disabled = true;
-        } else if (takenCartelas.includes(i)) {
-          btn.classList.add('taken');
-          btn.disabled = true;
-        }
-        btn.addEventListener('click', () => takeCartela(i));
-        grid.appendChild(btn);
+      if (mode === 'keno') {
+        bSec.style.display = 'none';
+        kSec.style.display = 'block';
+        bTab.className = 'mode-btn';
+        kTab.className = 'mode-btn active';
+        bot.style.display = 'none';
+        drawKenoBoard();
+      } else {
+        kSec.style.display = 'none';
+        bSec.style.display = 'block';
+        kTab.className = 'mode-btn';
+        bTab.className = 'mode-btn active';
+        if (gView.style.display === 'block') bot.style.display = 'grid';
+        drawCartelas300();
       }
     }
 
-    function stopCountdown() {
-      if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+    function pickStake(val) {
+      if (myCartelas.length > 0) {
+        msgBox('በዚህ ዙር የተያዘ ካርቴላ አለህ።');
+        return;
+      }
+      stake = val;
+      document.getElementById('st10').className = 'stake-btn' + (val === 10 ? ' active' : '');
+      document.getElementById('st20').className = 'stake-btn' + (val === 20 ? ' active' : '');
+      document.getElementById('st50').className = 'stake-btn' + (val === 50 ? ' active' : '');
+      updateLobbyInfo();
     }
 
-    function startCountdown() {
-      stopCountdown();
-      countdownSec = 10;
-      document.getElementById('countdownText').textContent = countdownSec + 's';
-      countdownTimer = setInterval(async () => {
+    function updateLobbyInfo() {
+      document.getElementById('pickedCount').textContent = myCartelas.length + ' ተመርጧል';
+      var est = Math.round((myCartelas.length + 1) * stake * 0.8);
+      document.getElementById('lobbyDerash').textContent = 'ደራሽ፦ ' + est + ' ብር';
+    }
+
+    function drawCartelas300() {
+      var grid = document.getElementById('cartelaGrid');
+      if (!grid) return;
+      var html = '';
+      for (var i = 1; i <= 300; i++) {
+        var cls = 'num-btn';
+        if (myCartelas.indexOf(i) !== -1) cls += ' mine';
+        else if (aiCartela === i) cls += ' ai';
+        html += '<button type="button" class="' + cls + '" onclick="selectCartela(' + i + ')">' + i + '</button>';
+      }
+      grid.innerHTML = html;
+      updateLobbyInfo();
+    }
+
+    function stopCd() {
+      if (cdTimer) { clearInterval(cdTimer); cdTimer = null; }
+    }
+
+    function startCd() {
+      stopCd();
+      cdSec = 10;
+      document.getElementById('countdownText').textContent = cdSec + 's';
+      cdTimer = setInterval(function() {
         if (myCartelas.length === 0) {
-          countdownSec = 10;
+          cdSec = 10;
           document.getElementById('countdownText').textContent = '10s';
           return;
         }
-        countdownSec -= 1;
-        document.getElementById('countdownText').textContent = Math.max(0, countdownSec) + 's';
-        if (countdownSec <= 0) {
-          stopCountdown();
-          await startGame();
+        cdSec -= 1;
+        document.getElementById('countdownText').textContent = (cdSec > 0 ? cdSec : 0) + 's';
+        if (cdSec <= 0) {
+          stopCd();
+          startBingoGame();
         }
       }, 1000);
     }
 
-    function stopAutoLoop() {
-      if (autoCallTimer) { clearInterval(autoCallTimer); autoCallTimer = null; }
-    }
-
-    function syncAutoMarkOnBoards() {
-      if (!autoMarkOn) return;
-      activeBoards.forEach((b) => {
-        (b._cells || []).forEach((cell) => {
-          const n = Number(cell.dataset.num);
-          if (Number.isFinite(n) && calledSet.has(n)) cell.classList.add('marked');
-        });
-      });
-    }
-
-    async function loadLobby() {
-      document.getElementById('pickedCount').textContent = myCartelas.length + ' ተመርጧል';
-      const estDerash = Math.round((myCartelas.length + 1) * currentStake * 0.8);
-      document.getElementById('lobbyDerash').textContent = 'ደራሽ፦ ' + estDerash + ' ብር';
-      renderGrid300();
-
-      try {
-        const res = await fetch('/api/state?userId=' + encodeURIComponent(userId) + '&stake=' + currentStake);
-        if (res.ok) {
-          const data = await res.json();
-          if (typeof data.balance === 'number') setBalance(data.balance);
-          if (data.room && Array.isArray(data.room.takenCartelas)) takenCartelas = data.room.takenCartelas;
-          if (data.room && typeof data.room.derash === 'number' && data.room.derash > 0) {
-            document.getElementById('lobbyDerash').textContent = 'ደራሽ፦ ' + data.room.derash + ' ብር';
-          }
-          renderGrid300();
-        }
-      } catch (e) {}
-    }
-
-    async function takeCartela(id) {
-      if (myCartelas.includes(id)) return;
-      if (currentBalance < currentStake) return showAlert('ባላንስ በቂ አይደለም።');
-
-      let serverOk = false;
-      try {
-        const res = await fetch('/api/take-cartela', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId, stake: currentStake, cartelaId: id })
-        });
-        const data = await res.json();
-        if (res.ok) {
-          serverOk = true;
-          if (typeof data.balance === 'number') setBalance(data.balance);
-          if (data.room && Array.isArray(data.room.takenCartelas)) takenCartelas = data.room.takenCartelas;
-        }
-      } catch (e) {}
-
-      if (!serverOk) setBalance(currentBalance - currentStake);
-
+    function selectCartela(id) {
+      if (myCartelas.indexOf(id) !== -1) return;
+      if (aiCartela === id) return;
+      if (balance < stake) {
+        msgBox('ባላንስ በቂ አይደለም።');
+        return;
+      }
+      setBal(balance - stake);
       myCartelas.push(id);
-      if (!aiCartelaId) {
-        let cand = ((id * 29 + 13) % 300) + 1;
-        if (myCartelas.includes(cand)) cand = (cand % 300) + 1;
-        aiCartelaId 
+      if (!aiCartela) {
+        var cand = ((id * 37 + 19) % 300) + 1;
+        if (cand === id) cand = (id % 300) + 1;
+        aiCartela = cand;
+      }
+      drawCartelas300();
+      startCd();
+    }
+
+    function makeCard(id) {
+      var ranges = [[1,15],[16,30],[31,45],[46,60],[61,75]];
+      var s = (id * 7919 + 104729) % 2147483647;
+      function rnd() { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }
+      var cols = [];
+      for (var c = 0; c < 5; c++) {
+        var arr = [];
+        for (var n = ranges[c][0]; n <= ranges[c][1]; n++) arr.push(n);
+        for (var i = arr.length - 1; i > 0; i--) {
+          var j = Math.floor(rnd() * (i + 1));
+          var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+        }
+        cols.push(arr.slice(0, 5));
+      }
+      var card = [];
+      for (var r = 0; r < 5; r++) {
+        var row = [];
+        for (var k = 0; k < 5; k++) row.push((r === 2 && k === 2) ? 'FREE' : cols[k][r]);
+        card.push(row);
+      }
+      return card;
+    }
+
+    function makeDraw75() {
+      var arr = [];
+      for (var i = 1; i <= 75; i++) arr.push(i);
+      for (var k = arr.length - 1; k > 0; k--) {
+        var j = Math.floor(Math.random() * (k + 1));
+        var t = arr[k]; arr[k] = arr[j]; 

@@ -5,6 +5,14 @@ const path = require('path');
 const crypto = require('crypto');
 require('dotenv').config();
 
+process.on('uncaughtException', (err) => {
+    console.error('UNCAUGHT EXCEPTION:', err);
+});
+
+process.on('unhandledRejection', (reason) => {
+    console.error('UNHANDLED REJECTION:', reason);
+});
+
 if (!process.env.BOT_TOKEN) {
     console.error('ERROR: BOT_TOKEN is missing in environment variables.');
     process.exit(1);
@@ -19,7 +27,6 @@ const ADMIN_ID = process.env.ADMIN_ID ? String(process.env.ADMIN_ID).trim() : '8
 const MIN_WITHDRAW = 1000;
 const PAYOUT_RATE = 0.80;
 
-// የመክፈያ መረጃዎች
 const PAYMENT_ACCOUNTS = {
     Telebirr: {
         label: 'Telebirr',
@@ -33,7 +40,6 @@ const PAYMENT_ACCOUNTS = {
     }
 };
 
-// --- ቋሚ ማከማቻ (data/users.json እና data/used_proofs.json) ---
 const DATA_DIR = path.join(__dirname, 'data');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const PROOFS_FILE = path.join(DATA_DIR, 'used_proofs.json');
@@ -45,7 +51,9 @@ if (!fs.existsSync(DATA_DIR)) {
 function loadJson(filePath, fallback) {
     if (!fs.existsSync(filePath)) return fallback;
     try {
-        return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        const raw = fs.readFileSync(filePath, 'utf8');
+        if (!raw || !raw.trim()) return fallback;
+        return JSON.parse(raw);
     } catch (e) {
         console.error('Failed to read ' + filePath + ':', e.message);
         return fallback;
@@ -61,12 +69,13 @@ function saveJson(filePath, data) {
 }
 
 let users = loadJson(USERS_FILE, {});
-let usedProofs = loadJson(PROOFS_FILE, {
-    photos: {},
-    sms: {}
-});
+if (!users || typeof users !== 'object' || Array.isArray(users)) users = {};
 
-// ለ Admin በአዝራር ሲጫን የሚጠበቅ የ Credit ዒላማ
+let usedProofs = loadJson(PROOFS_FILE, { photos: {}, sms: {} });
+if (!usedProofs || typeof usedProofs !== 'object') usedProofs = { photos: {}, sms: {} };
+if (!usedProofs.photos) usedProofs.photos = {};
+if (!usedProofs.sms) usedProofs.sms = {};
+
 let adminPendingCreditTarget = null;
 
 function saveUsers() {
@@ -95,7 +104,6 @@ function looksLikePaymentSms(text) {
     return t.length >= 20 && keywords.some((kw) => t.includes(kw));
 }
 
-// ገንዘቡ ወደ Biniyam (0912698277 / 251912698277 / 1000161123726) መላኩን ማረጋገጫ
 function smsSentToOwner(text) {
     const t = normalizeText(text);
     const compact = t.replace(/[\s\-+*]/g, '');
@@ -185,7 +193,6 @@ function spendFromWallets(user, amount) {
     return true;
 }
 
-// --- የጨዋታ ክፍሎች (Stake Rooms: 10, 20, 50) ---
 const CARTELA_COUNT = 300;
 const rooms = {};
 
@@ -214,7 +221,6 @@ function getRoomSummary(stake) {
     };
 }
 
-// --- 300 ካርቴላዎች (#1 - #300) ---
 function createSeededRandom(seed) {
     let s = seed % 2147483647;
     if (s <= 0) s += 2147483646;
@@ -265,7 +271,6 @@ for (let id = 1; id <= CARTELA_COUNT; id++) {
     cartelas[id] = buildCartela(id);
 }
 
-// --- ዋና ሜኑ ---
 function getMainKeyboard() {
     return Markup.keyboard([
         ['🎮 Play', '💰 Deposit'],
@@ -363,7 +368,6 @@ bot.action(/^deposit_(Telebirr|CBE)$/, async (ctx) => {
     );
 });
 
-// Admin የ "Credit User" ቁልፍ ሲጫን
 bot.action(/^admin_credit_(\d+)$/, async (ctx) => {
     if (!ADMIN_ID || String(ctx.from.id) !== ADMIN_ID) {
         return ctx.answerCbQuery('Admin only', { show_alert: true });
@@ -377,7 +381,6 @@ bot.action(/^admin_credit_(\d+)$/, async (ctx) => {
     );
 });
 
-// --- ስክሪንሾት መቀበል፣ የተደጋገመ መከላከል እና ወደ Admin መላክ ---
 bot.on('photo', async (ctx) => {
     const user = getUser(ctx.from.id);
     const method = user.pendingDepositMethod || 'Telebirr / CBE';
@@ -424,7 +427,6 @@ bot.on('photo', async (ctx) => {
     );
 });
 
-// --- ለ Admin ባላንስ መጨመር (/credit <userId> <amount>) ---
 bot.command('credit', (ctx) => {
     if (!ADMIN_ID || String(ctx.from.id) !== ADMIN_ID) return;
     const parts = ctx.message.text.trim().split(/\s+/);
@@ -448,7 +450,6 @@ bot.command('credit', (ctx) => {
     ).catch(() => {});
 });
 
-// --- Withdraw ፍሰት፦ ዘዴ መምረጥ እና ስም + ቁጥር/አካውንት መጠየቅ ---
 bot.hears('💸 Withdraw', (ctx) => {
     const user = getUser(ctx.from.id);
     user.pendingDepositMethod = null;
@@ -522,12 +523,10 @@ bot.hears(['📖 How To Play', 'ℹ️ መረጃ (Info)'], (ctx) => {
     );
 });
 
-// --- ጽሁፍ መቀበል (Admin Credit Amount / Withdraw Details / Deposit SMS) ---
 bot.on('text', async (ctx, next) => {
     const senderId = String(ctx.from.id);
     const rawText = ctx.message.text.trim();
 
-    // 1. Admin በ "Credit User" ቁልፍ ከመረጠ በኋላ የብር መጠን ሲጽፍ -> በራስ-ሰር ባላንስ ይጨምራል
     if (ADMIN_ID && senderId === ADMIN_ID && adminPendingCreditTarget) {
         const amount = Number(rawText);
         const targetId = adminPendingCreditTarget;
@@ -553,7 +552,6 @@ bot.on('text', async (ctx, next) => {
 
     const user = getUser(senderId);
 
-    // 2. ተጫዋቹ የ Withdraw Telebirr/CBE ስም እና ቁጥር/አካውንት ሲልክ -> ባላንስ ይቀነሳል & ለ Admin ይላካል
     if (user.pendingWithdrawMethod) {
         if (rawText.length < 4) {
             return ctx.reply('⚠️ እባክህ ስምህን እና የ Telebirr ስልክ ወይም የ CBE አካውንት ቁጥር በግልጽ ጻፍ።');
@@ -594,7 +592,6 @@ bot.on('text', async (ctx, next) => {
         return;
     }
 
-    // 3. Deposit SMS ፍሰት
     if (!user.pendingDepositMethod) return next();
 
     const method = user.pendingDepositMethod;
@@ -626,4 +623,15 @@ bot.on('text', async (ctx, next) => {
 
     usedProofs.sms[smsHash] = {
         userId: senderId,
-    
+        method,
+        usedAt: new Date().toISOString()
+    };
+    saveProofs();
+
+    user.pendingDepositMethod = null;
+    saveUsers();
+
+    const senderInfo = formatSenderTag(ctx.from);
+
+    await ctx.reply(
+        '📩 የ <b>' + m    

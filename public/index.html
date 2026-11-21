@@ -472,4 +472,413 @@
       for (var i = 1; i <= 75; i++) arr.push(i);
       for (var k = arr.length - 1; k > 0; k--) {
         var j = Math.floor(Math.random() * (k + 1));
-        var t = arr[k]; arr[k] = arr[j]; 
+        var t = arr[k]; arr[k] = arr[j]; arr[j] = t;
+      }
+      return arr;
+    }
+
+    function letterOf(n) {
+      if (n <= 15) return 'B';
+      if (n <= 30) return 'I';
+      if (n <= 45) return 'N';
+      if (n <= 60) return 'G';
+      return 'O';
+    }
+
+    function speakText(txt) {
+      if (!soundOn) return;
+      try {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          var u = new SpeechSynthesisUtterance(txt);
+          u.rate = 1.05;
+          window.speechSynthesis.speak(u);
+        }
+      } catch (e) {}
+    }
+
+    function hasLine(card, map) {
+      var lines = [];
+      for (var r = 0; r < 5; r++) lines.push([[r,0],[r,1],[r,2],[r,3],[r,4]]);
+      for (var c = 0; c < 5; c++) lines.push([[0,c],[1,c],[2,c],[3,c],[4,c]]);
+      lines.push([[0,0],[1,1],[2,2],[3,3],[4,4]]);
+      lines.push([[0,4],[1,3],[2,2],[3,1],[4,0]]);
+      for (var i = 0; i < lines.length; i++) {
+        var ok = true;
+        for (var p = 0; p < 5; p++) {
+          var v = String(card[lines[i][p][0]][lines[i][p][1]]);
+          if (!map[v]) { ok = false; break; }
+        }
+        if (ok) return lines[i];
+      }
+      return null;
+    }
+
+    function stepAiTurn(num) {
+      if (!aiCard || gameEnded) return;
+      for (var r = 0; r < 5; r++) {
+        for (var c = 0; c < 5; c++) {
+          if (aiCard[r][c] === num) aiMarked[String(num)] = true;
+        }
+      }
+      var best = 0;
+      for (var r2 = 0; r2 < 5; r2++) {
+        var cntR = 0;
+        for (var c2 = 0; c2 < 5; c2++) if (aiMarked[String(aiCard[r2][c2])]) cntR++;
+        if (cntR > best) best = cntR;
+      }
+      for (var c3 = 0; c3 < 5; c3++) {
+        var cntC = 0;
+        for (var r3 = 0; r3 < 5; r3++) if (aiMarked[String(aiCard[r3][c3])]) cntC++;
+        if (cntC > best) best = cntC;
+      }
+      document.getElementById('aiLineText').textContent = (best === 4) ? '1 AWAY! 🔥' : ('Line: ' + best + '/5');
+
+      if (hasLine(aiCard, aiMarked)) {
+        gameEnded = true;
+        if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+        speakText('AI wins Bingo');
+        msgBox('🤖 AI ቀድሞ BINGO አሸነፈ! እንደገና ለመጫወት Leave ብለህ ሞክር።');
+      }
+    }
+
+    function render75() {
+      var g = document.getElementById('board75Grid');
+      var h = '';
+      for (var r = 0; r < 15; r++) {
+        for (var c = 0; c < 5; c++) {
+          var n = c * 15 + r + 1;
+          var cls = 'b75-cell';
+          if (n === latestNum) cls += ' latest';
+          else if (calledMap[n]) cls += ' called';
+          h += '<div class="' + cls + '">' + n + '</div>';
+        }
+      }
+      g.innerHTML = h;
+    }
+
+    function renderRecent() {
+      var box = document.getElementById('recentCallsBox');
+      var h = '';
+      var top3 = recentCalls.slice(0, 3);
+      for (var i = 0; i < top3.length; i++) {
+        h += '<div class="rec-orb rec-' + (i % 3) + '">' + top3[i].replace('-', '') + '</div>';
+      }
+      box.innerHTML = h;
+    }
+
+    function toggleCell(boardIdx, cellIdx, val) {
+      if (val === 'FREE') return;
+      if (autoMarkOn) {
+        msgBox('Auto ON ሲሆን ቁጥሮች በራሳቸው ይሰመራሉ። በእጅ ለመንካት Auto OFF አድርግ።');
+        return;
+      }
+      if (!calledMap[Number(val)]) {
+        msgBox('ቁጥር ' + val + ' ገና አልተጠራም።');
+        return;
+      }
+      var el = document.getElementById('c5-' + boardIdx + '-' + cellIdx);
+      if (!el) return;
+      if (el.className.indexOf('marked') !== -1) {
+        el.className = 'c5-cell';
+      } else {
+        el.className = 'c5-cell marked';
+      }
+    }
+
+    function renderBoards() {
+      var list = document.getElementById('myBoardsList');
+      document.getElementById('cartelaBadgeText').textContent = stake + ' № ' + activeBoards.map(function(x){ return x.id; }).join(',');
+      var h = '';
+      for (var b = 0; b < activeBoards.length; b++) {
+        var brd = activeBoards[b];
+        h += '<div class="my-cartela-box"><div class="my-cartela-title"><span>Cartela #' + brd.id + '</span><span>5 in Row</span></div><div class="c5-grid">';
+        var idx = 0;
+        for (var r = 0; r < 5; r++) {
+          for (var c = 0; c < 5; c++) {
+            var val = brd.card[r][c];
+            var cls = 'c5-cell';
+            if (val === 'FREE') cls += ' free marked';
+            else if (autoMarkOn && calledMap[Number(val)]) cls += ' marked';
+            h += '<div id="c5-' + b + '-' + idx + '" class="' + cls + '" onclick="toggleCell(' + b + ',' + idx + ',\'' + val + '\')">' + val + '</div>';
+            idx++;
+          }
+        }
+        h += '</div></div>';
+      }
+      list.innerHTML = h;
+    }
+
+    function drawNextBall() {
+      if (gameEnded) return;
+      if (drawPos >= drawOrder.length) {
+        if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+        return;
+      }
+      var n = drawOrder[drawPos++];
+      latestNum = n;
+      calledMap[n] = true;
+      var code = letterOf(n) + '-' + n;
+      recentCalls.unshift(code);
+
+      document.getElementById('currentCallPill').textContent = code;
+      document.getElementById('stCalled').textContent = drawPos + '/75';
+      render75();
+      renderRecent();
+      if (autoMarkOn) renderBoards();
+      speakText(letterOf(n) + ' ' + n);
+      stepAiTurn(n);
+    }
+
+    function startBingoGame() {
+      if (myCartelas.length === 0) {
+        msgBox('መጀመሪያ ቢያንስ አንድ ካርቴላ ያዝ።');
+        return;
+      }
+      stopCd();
+      gameId = String(Date.now()).slice(-7) + '_TB';
+      drawOrder = makeDraw75();
+      calledMap = {};
+      latestNum = null;
+      drawPos = 0;
+      recentCalls = [];
+      gameEnded = false;
+      derash = Math.round((myCartelas.length + 1) * stake * 0.8);
+
+      activeBoards = [];
+      for (var i = 0; i < myCartelas.length; i++) {
+        activeBoards.push({ id: myCartelas[i], card: makeCard(myCartelas[i]) });
+      }
+      myCartelas = [];
+
+      var chosenAi = aiCartela || 77;
+      aiCard = makeCard(chosenAi);
+      aiMarked = { FREE: true };
+      document.getElementById('aiIdText').textContent = String(chosenAi);
+      document.getElementById('aiLineText').textContent = 'Line: 1/5';
+
+      document.getElementById('stGameId').textContent = gameId;
+      document.getElementById('stDerash').textContent = String(derash);
+      document.getElementById('stPlayers').textContent = '2';
+      document.getElementById('stStake').textContent = String(stake);
+      document.getElementById('stCalled').textContent = '0/75';
+      document.getElementById('currentCallPill').textContent = '-';
+
+      render75();
+      renderRecent();
+      renderBoards();
+
+      document.getElementById('lobbyView').style.display = 'none';
+      document.getElementById('gameView').style.display = 'block';
+      document.getElementById('bottomBar').style.display = 'grid';
+
+      if (autoTimer) clearInterval(autoTimer);
+      drawNextBall();
+      autoTimer = setInterval(function() {
+        if (gameEnded || drawPos >= drawOrder.length) {
+          clearInterval(autoTimer);
+          autoTimer = null;
+        } else {
+          drawNextBall();
+        }
+      }, 2500);
+    }
+
+    function toggleSound() {
+      soundOn = !soundOn;
+      document.getElementById('soundToggleBtn').textContent = soundOn ? '🔊 Sound' : '🔇 Muted';
+    }
+
+    function toggleAutoMark() {
+      autoMarkOn = !autoMarkOn;
+      var btn = document.getElementById('autoMarkBtn');
+      btn.textContent = autoMarkOn ? 'Auto ON' : 'Auto OFF';
+      btn.className = 'auto-toggle' + (autoMarkOn ? ' on' : '');
+      if (autoMarkOn) renderBoards();
+    }
+
+    function refreshArena() {
+      render75();
+      renderRecent();
+      renderBoards();
+    }
+
+    function leaveGame() {
+      if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+      stopCd();
+      document.getElementById('gameView').style.display = 'none';
+      document.getElementById('bottomBar').style.display = 'none';
+      document.getElementById('lobbyView').style.display = 'block';
+      drawCartelas300();
+    }
+
+    function claimBingo() {
+      if (gameEnded) return;
+      if (derash <= 0) {
+        msgBox('የደራሽ ሽልማት የለም።');
+        return;
+      }
+      var won = false;
+      for (var b = 0; b < activeBoards.length; b++) {
+        var brd = activeBoards[b];
+        var mMap = { FREE: true };
+        var idx = 0;
+        for (var r = 0; r < 5; r++) {
+          for (var c = 0; c < 5; c++) {
+            var val = brd.card[r][c];
+            var el = document.getElementById('c5-' + b + '-' + idx);
+            if (val !== 'FREE' && el && el.className.indexOf('marked') !== -1 && calledMap[Number(val)]) {
+              mMap[String(val)] = true;
+            }
+            idx++;
+          }
+        }
+        var line = hasLine(brd.card, mMap);
+        if (line) {
+          won = true;
+          for (var k = 0; k < line.length; k++) {
+            var flatIdx = line[k][0] * 5 + line[k][1];
+            var winEl = document.getElementById('c5-' + b + '-' + flatIdx);
+            if (winEl) winEl.className = 'c5-cell win-line';
+          }
+          break;
+        }
+      }
+      if (!won) {
+        msgBox('ገና ሙሉ 5 በአንድ መስመር የተጠሩ ቁጥሮች አልሞሉም!');
+        return;
+      }
+      gameEnded = true;
+      if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+      setBal(balance + derash);
+      speakText('Bingo! You win!');
+      msgBox('🎉 BINGO! +' + derash + ' ብር ወደ Balance ገባ!');
+      derash = 0;
+      document.getElementById('stDerash').textContent = '0';
+    }
+
+    // Keno 1-40, 10 draws
+    function pickKenoStake(v) {
+      if (kenoBusy) return;
+      kenoStake = v;
+      document.getElementById('ks10').className = 'stake-btn' + (v === 10 ? ' active' : '');
+      document.getElementById('ks20').className = 'stake-btn' + (v === 20 ? ' active' : '');
+      document.getElementById('ks50').className = 'stake-btn' + (v === 50 ? ' active' : '');
+    }
+
+    function drawKenoBoard() {
+      var g = document.getElementById('kenoGrid');
+      if (!g) return;
+      var h = '';
+      for (var i = 1; i <= 40; i++) {
+        var isP = kenoPicked.indexOf(i) !== -1;
+        var isD = kenoDrawn.indexOf(i) !== -1;
+        var cls = 'keno-cell';
+        if (isP && isD) cls += ' hit';
+        else if (isD) cls += ' drawn';
+        else if (isP) cls += ' picked';
+        h += '<div class="' + cls + '" onclick="toggleKenoNum(' + i + ')">' + i + '</div>';
+      }
+      g.innerHTML = h;
+      document.getElementById('kenoPickCount').textContent = kenoPicked.length + '/5 ተመርጧል';
+    }
+
+    function toggleKenoNum(n) {
+      if (kenoBusy) return;
+      var pos = kenoPicked.indexOf(n);
+      if (pos !== -1) {
+        kenoPicked.splice(pos, 1);
+      } else {
+        if (kenoPicked.length >= 5) {
+          msgBox('ቢበዛ 5 ቁጥሮች ብቻ መምረጥ ይቻላል።');
+          return;
+        }
+        kenoPicked.push(n);
+      }
+      kenoDrawn = [];
+      document.getElementById('kenoDrawnStrip').innerHTML = '';
+      document.getElementById('kenoHitsText').textContent = 'Hits: 0';
+      document.getElementById('kenoWinText').textContent = 'Win: 0 ብር';
+      drawKenoBoard();
+    }
+
+    function clearKeno() {
+      if (kenoBusy) return;
+      kenoPicked = [];
+      kenoDrawn = [];
+      document.getElementById('kenoDrawnStrip').innerHTML = '';
+      document.getElementById('kenoHitsText').textContent = 'Hits: 0';
+      document.getElementById('kenoWinText').textContent = 'Win: 0 ብር';
+      drawKenoBoard();
+    }
+
+    function kenoReward(hits, st) {
+      if (hits >= 4) return st * 15;
+      if (hits === 3) return st * 5;
+      if (hits === 2) return st * 2;
+      if (hits === 1) return Math.round(st * 0.5);
+      return 0;
+    }
+
+    function runKenoDraw() {
+      if (kenoBusy) return;
+      if (kenoPicked.length === 0) {
+        msgBox('መጀመሪያ ከ 1–40 ቢያንስ አንድ ቁጥር ምረጥ።');
+        return;
+      }
+      if (balance < kenoStake) {
+        msgBox('ባላንስ በቂ አይደለም።');
+        return;
+      }
+      kenoBusy = true;
+      kenoDrawn = [];
+      document.getElementById('kenoDrawnStrip').innerHTML = '';
+      document.getElementById('kenoHitsText').textContent = 'Hits: 0';
+      document.getElementById('kenoWinText').textContent = 'Win: 0 ብር';
+      setBal(balance - kenoStake);
+      drawKenoBoard();
+
+      var pool = [];
+      for (var n = 1; n <= 40; n++) pool.push(n);
+      for (var i = pool.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var t = pool[i]; pool[i] = pool[j]; pool[j] = t;
+      }
+      var ten = pool.slice(0, 10);
+      var idx = 0;
+
+      var tmr = setInterval(function() {
+        var num = ten[idx++];
+        kenoDrawn.push(num);
+
+        var isHit = kenoPicked.indexOf(num) !== -1;
+        var strip = document.getElementById('kenoDrawnStrip');
+        strip.innerHTML += '<div class="keno-ball' + (isHit ? ' hit-ball' : '') + '">' + num + '</div>';
+
+        var hits = 0;
+        for (var p = 0; p < kenoPicked.length; p++) {
+          if (kenoDrawn.indexOf(kenoPicked[p]) !== -1) hits++;
+        }
+        document.getElementById('kenoHitsText').textContent = 'Hits: ' + hits + '/' + kenoPicked.length;
+        drawKenoBoard();
+
+        if (idx >= ten.length) {
+          clearInterval(tmr);
+          kenoBusy = false;
+          var win = kenoReward(hits, kenoStake);
+          document.getElementById('kenoWinText').textContent = 'Win: ' + win + ' ብር';
+          if (win > 0) {
+            setBal(balance + win);
+            msgBox('🎱 Keno Hits: ' + hits + '! +' + win + ' ብር አሸንፈሃል!');
+          } else {
+            msgBox('🎱 Keno Hits: ' + hits + '። እንደገና ሞክር!');
+          }
+        }
+      }, 300);
+    }
+
+    drawCartelas300();
+    drawKenoBoard();
+  </script>
+</body>
+</html>

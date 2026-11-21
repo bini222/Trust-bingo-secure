@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Trust Bingo - Final Edition</title>
+  <title>Trust Bingo</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
@@ -18,7 +18,6 @@
     }
     .container { padding: 10px; max-width: 560px; margin: 0 auto; }
 
-    /* Lobby View */
     .lobby-card {
       background: #efe8f8; border: 1px solid #c9b7e3;
       border-radius: 14px; padding: 12px; margin-bottom: 12px;
@@ -37,11 +36,11 @@
     }
     .grid-300 {
       display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px;
-      max-height: 225px; overflow-y: auto; padding: 6px; background: #ddd0ef; border-radius: 10px;
+      max-height: 230px; overflow-y: auto; padding: 6px; background: #ddd0ef; border-radius: 10px;
     }
     .num-btn {
       padding: 7px 2px; border: 1px solid #b9a6d6; border-radius: 6px;
-      background: #faf6ff; color: #1e1830; font-size: 11px; font-weight: 700; cursor: pointer;
+      background: #faf6ff; color: #1e1830; font-size: 11px; font-weight: 800; cursor: pointer;
     }
     .num-btn.mine { background: #16a34a; color: #fff; border-color: #16a34a; }
     .num-btn.ai { background: #6b21a8; color: #fff; border-color: #6b21a8; cursor: not-allowed; }
@@ -51,27 +50,18 @@
       background: #d97706; color: #fff; font-size: 15px; font-weight: 900; cursor: pointer;
     }
 
-    /* Live Arena View */
-    .stats-strip {
-      display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-bottom: 10px;
-    }
+    .stats-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-bottom: 10px; }
     .stat-box {
       background: #f5effc; border: 1px solid #c6b4e0; border-radius: 8px;
       padding: 6px 4px; text-align: center;
     }
     .stat-lbl { font-size: 10px; font-weight: 700; color: #4a3f6b; }
-    .stat-val { font-size: 11px; font-weight: 900; color: #1e1830; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .stat-val { font-size: 11px; font-weight: 900; color: #1e1830; margin-top: 2px; }
 
     .arena-split { display: grid; grid-template-columns: 148px 1fr; gap: 10px; align-items: start; }
-
-    .board75-card {
-      background: #efe8f8; border: 1px solid #c5b2e0; border-radius: 12px; padding: 6px;
-    }
+    .board75-card { background: #efe8f8; border: 1px solid #c5b2e0; border-radius: 12px; padding: 6px; }
     .b75-header { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin-bottom: 4px; }
-    .b75-h {
-      text-align: center; font-size: 11px; font-weight: 900; color: #fff;
-      padding: 4px 0; border-radius: 5px;
-    }
+    .b75-h { text-align: center; font-size: 11px; font-weight: 900; color: #fff; padding: 4px 0; border-radius: 5px; }
     .h-B { background: #eab308; }
     .h-I { background: #16a34a; }
     .h-N { background: #2563eb; }
@@ -91,10 +81,7 @@
       padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;
       font-weight: 900; font-size: 16px;
     }
-    .call-badge-pill {
-      background: #ea580c; color: #fff; padding: 5px 12px;
-      border-radius: 999px; font-size: 15px; font-weight: 900;
-    }
+    .call-badge-pill { background: #ea580c; color: #fff; padding: 5px 12px; border-radius: 999px; font-size: 15px; font-weight: 900; }
     .recent-calls-box {
       background: #ede4f7; border: 1px solid #c5b2e0; border-radius: 12px;
       padding: 8px; display: flex; justify-content: center; gap: 8px; min-height: 52px; align-items: center;
@@ -122,22 +109,9 @@
     }
     .auto-toggle.on { background: #16a34a; border-color: #16a34a; color: #fff; }
 
-    .player-area-card {
-      background: #dfd3ee; border: 1px solid #c2aee0; border-radius: 12px;
-      padding: 10px; min-height: 220px;
-    }
-    .wait-msg {
-      text-align: center; padding: 65px 12px; font-weight: 800;
-      color: #2e2447; font-size: 14px; line-height: 1.5;
-    }
-    .my-cartela-box {
-      background: #f7f2fc; border: 1px solid #c2aee0; border-radius: 10px;
-      padding: 8px; margin-bottom: 8px;
-    }
-    .my-cartela-title {
-      display: flex; justify-content: space-between; font-size: 12px;
-      font-weight: 900; color: #5c1b8a; margin-bottom: 6px;
-    }
+    .player-area-card { background: #dfd3ee; border: 1px solid #c2aee0; border-radius: 12px; padding: 10px; min-height: 210px; }
+    .my-cartela-box { background: #f7f2fc; border: 1px solid #c2aee0; border-radius: 10px; padding: 8px; margin-bottom: 8px; }
+    .my-cartela-title { display: flex; justify-content: space-between; font-size: 12px; font-weight: 900; color: #5c1b8a; margin-bottom: 6px; }
     .c5-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
     .c5-cell {
       aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
@@ -159,29 +133,18 @@
       background: #efe7f8; border-top: 1px solid #c4b0e0;
       display: grid; grid-template-columns: 1fr 1.2fr 1.2fr; gap: 8px; padding: 8px 10px;
     }
-    .act-leave {
-      background: #dc2626; color: #fff; border: none; border-radius: 8px;
-      padding: 10px; font-weight: 900; font-size: 13px; cursor: pointer;
-    }
-    .act-refresh {
-      background: #2563eb; color: #fff; border: none; border-radius: 8px;
-      padding: 10px; font-weight: 900; font-size: 13px; cursor: pointer;
-    }
-    .act-bingo {
-      background: #f59e0b; color: #fff; border: none; border-radius: 8px;
-      padding: 10px; font-weight: 900; font-size: 13px; cursor: pointer;
-    }
-    .act-bingo.ready { background: #16a34a; }
+    .act-leave { background: #dc2626; color: #fff; border: none; border-radius: 8px; padding: 10px; font-weight: 900; font-size: 13px; cursor: pointer; }
+    .act-refresh { background: #2563eb; color: #fff; border: none; border-radius: 8px; padding: 10px; font-weight: 900; font-size: 13px; cursor: pointer; }
+    .act-bingo { background: #16a34a; color: #fff; border: none; border-radius: 8px; padding: 10px; font-weight: 900; font-size: 13px; cursor: pointer; }
   </style>
 </head>
 <body>
   <div class="topbar">
     <span>Trust Bingo</span>
-    <span class="pill" id="balPill">Balance: 0.00 ብር</span>
+    <span class="pill" id="balPill">Balance: 100.00 ብር</span>
   </div>
 
   <div class="container">
-    <!-- LOBBY VIEW -->
     <div id="lobbyView">
       <div class="countdown-box">
         <div>
@@ -214,7 +177,6 @@
       <button class="start-main-btn" id="startGameBtn">ጨዋታ ጀምር (Play)</button>
     </div>
 
-    <!-- LIVE ARENA VIEW -->
     <div id="gameView" style="display:none;">
       <div class="stats-strip">
         <div class="stat-box"><div class="stat-lbl">Game ID</div><div class="stat-val" id="stGameId">-</div></div>
@@ -251,7 +213,6 @@
           </div>
 
           <div class="player-area-card" id="playerAreaCard">
-            <div class="wait-msg" id="waitMsgBox">እባክዎ ይህ ጨዋታ እስከሚጨርስ ይጠብቁ</div>
             <div id="myBoardsList"></div>
           </div>
 
@@ -278,6 +239,7 @@
     const tgUser = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null;
     const userId = String(tgUser || params.get('userId') || 'guest');
 
+    let currentBalance = 100;
     let currentStake = 10;
     let myCartelas = [];
     let takenCartelas = [];
@@ -306,8 +268,10 @@
       else alert(msg);
     }
 
-    function updateBalance(val) {
-      document.getElementById('balPill').textContent = 'Balance: ' + Number(val || 0).toFixed(2) + ' ብር';
+    function setBalance(val) {
+      currentBalance = Number(val);
+      if (!Number.isFinite(currentBalance)) currentBalance = 100;
+      document.getElementById('balPill').textContent = 'Balance: ' + currentBalance.toFixed(2) + ' ብር';
     }
 
     function letterFor(num) {
@@ -369,31 +333,85 @@
       });
     }
 
-    function renderBoard75() {
-      const grid = document.getElementById('board75Grid');
+    function renderGrid300() {
+      const grid = document.getElementById('cartelaGrid');
       grid.innerHTML = '';
-      for (let row = 0; row < 15; row++) {
-        for (let col = 0; col < 5; col++) {
-          const n = col * 15 + row + 1;
-          const div = document.createElement('div');
-          div.className = 'b75-cell';
-          div.textContent = n;
-          if (n === latestNum) div.classList.add('latest');
-          else if (calledSet.has(n)) div.classList.add('called');
-          grid.appendChild(div);
+      for (let i = 1; i <= 300; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'num-btn';
+        btn.textContent = i;
+        if (myCartelas.includes(i)) {
+          btn.classList.add('mine');
+        } else if (i === aiCartelaId) {
+          btn.classList.add('ai');
+          btn.disabled = true;
+        } else if (takenCartelas.includes(i)) {
+          btn.classList.add('taken');
+          btn.disabled = true;
         }
+        btn.addEventListener('click', () => takeCartela(i));
+        grid.appendChild(btn);
       }
     }
 
-    function renderRecentCalls() {
-      const box = document.getElementById('recentCallsBox');
-      box.innerHTML = '';
-      recentCalls.slice(0, 3).forEach((item, idx) => {
-        const orb = document.createElement('div');
-        orb.className = 'rec-orb rec-' + (idx % 3);
-        orb.textContent = item.replace('-', '');
-        box.appendChild(orb);
-      });
+    async function loadLobby() {
+      document.getElementById('pickedCount').textContent = myCartelas.length + ' ተመርጧል';
+      const estDerash = Math.round((myCartelas.length + 1) * currentStake * 0.8);
+      document.getElementById('lobbyDerash').textContent = 'ደራሽ፦ ' + estDerash + ' ብር';
+      renderGrid300();
+
+      try {
+        const res = await fetch('/api/state?userId=' + encodeURIComponent(userId) + '&stake=' + currentStake);
+        if (res.ok) {
+          const data = await res.json();
+          if (typeof data.balance === 'number') setBalance(data.balance);
+          if (data.room && Array.isArray(data.room.takenCartelas)) {
+            takenCartelas = data.room.takenCartelas;
+          }
+          if (data.room && typeof data.room.derash === 'number' && data.room.derash > 0) {
+            document.getElementById('lobbyDerash').textContent = 'ደራሽ፦ ' + data.room.derash + ' ብር';
+          }
+          renderGrid300();
+        }
+      } catch (e) {}
+    }
+
+    async function takeCartela(id) {
+      if (myCartelas.includes(id)) return;
+      if (currentBalance < currentStake) {
+        return showAlert('ባላንስ በቂ አይደለም።');
+      }
+
+      let serverOk = false;
+      try {
+        const res = await fetch('/api/take-cartela', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, stake: currentStake, cartelaId: id })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          serverOk = true;
+          if (typeof data.balance === 'number') setBalance(data.balance);
+          if (data.room && Array.isArray(data.room.takenCartelas)) {
+            takenCartelas = data.room.takenCartelas;
+          }
+        }
+      } catch (e) {}
+
+      if (!serverOk) {
+        setBalance(currentBalance - currentStake);
+      }
+
+      myCartelas.push(id);
+      if (!aiCartelaId) {
+        let cand = ((id * 29 + 13) % 300) + 1;
+        if (myCartelas.includes(cand)) cand = (cand % 300) + 1;
+        aiCartelaId = cand;
+      }
+
+      await loadLobby();
+      startCountdown();
     }
 
     function buildCartelaGrid(id) {
@@ -416,6 +434,16 @@
         card.push(row);
       }
       return card;
+    }
+
+    function makeShuffled75() {
+      const arr = [];
+      for (let i = 1; i <= 75; i++) arr.push(i);
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
     }
 
     function findWinningIndices(card, markedSet) {
@@ -482,46 +510,246 @@
       }
     }
 
-    async function loadLobby() {
-      const res = await fetch('/api/state?userId=' + encodeURIComponent(userId) + '&stake=' + currentStake);
-      const data = await res.json();
-      updateBalance(data.balance);
-      takenCartelas = (data.room && data.room.takenCartelas) || [];
-      const derash = (data.room && data.room.derash) || 0;
-      document.getElementById('lobbyDerash').textContent = 'ደራሽ፦ ' + derash + ' ብር';
-      document.getElementById('pickedCount').textContent = myCartelas.length + ' ተመርጧል';
-
-      const grid = document.getElementById('cartelaGrid');
+    function renderBoard75() {
+      const grid = document.getElementById('board75Grid');
       grid.innerHTML = '';
-      for (let i = 1; i <= 300; i++) {
-        const btn = document.createElement('button');
-        btn.className = 'num-btn';
-        btn.textContent = i;
-        if (myCartelas.includes(i)) {
-          btn.classList.add('mine');
-        } else if (i === aiCartelaId) {
-          btn.classList.add('ai');
-          btn.disabled = true;
-        } else if (takenCartelas.includes(i)) {
-          btn.classList.add('taken');
-          btn.disabled = true;
+      for (let row = 0; row < 15; row++) {
+        for (let col = 0; col < 5; col++) {
+          const n = col * 15 + row + 1;
+          const div = document.createElement('div');
+          div.className = 'b75-cell';
+          div.textContent = n;
+          if (n === latestNum) div.classList.add('latest');
+          else if (calledSet.has(n)) div.classList.add('called');
+          grid.appendChild(div);
         }
-        btn.addEventListener('click', () => takeCartela(i));
-        grid.appendChild(btn);
       }
     }
 
-    async function takeCartela(id) {
-      if (myCartelas.includes(id)) return;
-      const res = await fetch('/api/take-cartela', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, stake: currentStake, cartelaId: id })
+    function renderRecentCalls() {
+      const box = document.getElementById('recentCallsBox');
+      box.innerHTML = '';
+      recentCalls.slice(0, 3).forEach((item, idx) => {
+        const orb = document.createElement('div');
+        orb.className = 'rec-orb rec-' + (idx % 3);
+        orb.textContent = item.replace('-', '');
+        box.appendChild(orb);
       });
-      const data = await res.json();
-      if (!res.ok) return showAlert(data.error || 'ካርቴላ መያዝ አልተቻለም');
+    }
 
-      myCartelas.push(id);
-      if (!aiCartelaId) {
-        let cand = ((id * 29 + 13) % 300) + 1;
-        if (myCartelas.includes(cand)) cand = (cand % 30
+    function renderMyBoards() {
+      const list = document.getElementById('myBoardsList');
+      list.innerHTML = '';
+      document.getElementById('cartelaBadgeText').textContent =
+        currentStake + ' № ' + activeBoards.map((x) => x.id).join(',');
+
+      activeBoards.forEach((b) => {
+        const box = document.createElement('div');
+        box.className = 'my-cartela-box';
+        box.innerHTML = '<div class="my-cartela-title"><span>Cartela #' + b.id + '</span><span>5 in Row</span></div>';
+
+        const grid = document.createElement('div');
+        grid.className = 'c5-grid';
+        b._cells = [];
+
+        (b.card || []).forEach((row) => {
+          row.forEach((val) => {
+            const cell = document.createElement('div');
+            cell.className = 'c5-cell';
+            cell.dataset.num = String(val);
+            cell.textContent = val;
+            if (val === 'FREE') {
+              cell.classList.add('free', 'marked');
+            } else {
+              if (autoMarkOn && calledSet.has(Number(val))) {
+                cell.classList.add('marked');
+              }
+              cell.addEventListener('click', () => {
+                if (autoMarkOn) {
+                  return showAlert('Auto ON ሲሆን ቁጥሮች በራሳቸው ይሰመራሉ። በእጅ ለመንካት Auto OFF አድርግ።');
+                }
+                if (!calledSet.has(Number(val))) {
+                  return showAlert('ቁጥር ' + val + ' ገና አልተጠራም።');
+                }
+                cell.classList.toggle('marked');
+              });
+            }
+            b._cells.push(cell);
+            grid.appendChild(cell);
+          });
+        });
+
+        box.appendChild(grid);
+        list.appendChild(box);
+      });
+    }
+
+    function drawOneCall() {
+      if (gameEnded) return;
+      if (drawPos >= drawOrder.length) {
+        stopAutoLoop();
+        return;
+      }
+      const num = drawOrder[drawPos++];
+      latestNum = num;
+      calledSet.add(num);
+      const code = letterFor(num) + '-' + num;
+      recentCalls.unshift(code);
+
+      document.getElementById('currentCallPill').textContent = code;
+      document.getElementById('stCalled').textContent = drawPos + '/75';
+      renderBoard75();
+      renderRecentCalls();
+
+      if (autoMarkOn) {
+        activeBoards.forEach((b) => {
+          (b._cells || []).forEach((cell) => {
+            if (Number(cell.dataset.num) === num) cell.classList.add('marked');
+          });
+        });
+      }
+
+      speak(letterFor(num) + ' ' + num);
+      stepAi(num);
+    }
+
+    async function startGame() {
+      if (myCartelas.length === 0) return showAlert('መጀመሪያ ቢያንስ አንድ ካርቴላ ያዝ።');
+      stopCountdown();
+
+      const pickedIds = [...myCartelas];
+      let serverData = null;
+      try {
+        const res = await fetch('/api/start-game', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, stake: currentStake, cartelaIds: pickedIds })
+        });
+        if (res.ok) serverData = await res.json();
+      } catch (e) {}
+
+      gameId = String(Date.now()).slice(-7) + '_TB';
+      drawOrder = (serverData && Array.isArray(serverData.drawOrder) && serverData.drawOrder.length)
+        ? serverData.drawOrder
+        : makeShuffled75();
+      calledSet = new Set();
+      latestNum = null;
+      drawPos = 0;
+      recentCalls = [];
+      gameEnded = false;
+
+      currentDerash = (serverData && typeof serverData.derash === 'number' && serverData.derash > 0)
+        ? serverData.derash
+        : Math.round((pickedIds.length + 1) * currentStake * 0.8);
+
+      activeBoards = (serverData && Array.isArray(serverData.boards) && serverData.boards.length)
+        ? serverData.boards
+        : pickedIds.map((id) => ({ id, card: buildCartelaGrid(id) }));
+
+      myCartelas = [];
+
+      const chosenAi = aiCartelaId || 55;
+      aiCard = buildCartelaGrid(chosenAi);
+      aiMarked = new Set(['FREE']);
+      document.getElementById('aiIdText').textContent = chosenAi;
+      document.getElementById('aiLineText').textContent = 'Line: 1/5';
+
+      document.getElementById('stGameId').textContent = gameId;
+      document.getElementById('stDerash').textContent = currentDerash;
+      document.getElementById('stPlayers').textContent = '2';
+      document.getElementById('stStake').textContent = currentStake;
+      document.getElementById('stCalled').textContent = '0/75';
+      document.getElementById('currentCallPill').textContent = '-';
+
+      renderBoard75();
+      renderRecentCalls();
+      renderMyBoards();
+
+      document.getElementById('lobbyView').style.display = 'none';
+      document.getElementById('gameView').style.display = 'block';
+      document.getElementById('bottomBar').style.display = 'grid';
+
+      stopAutoLoop();
+      drawOneCall();
+      autoCallTimer = setInterval(() => {
+        if (gameEnded || drawPos >= drawOrder.length) stopAutoLoop();
+        else drawOneCall();
+      }, 2500);
+    }
+
+    document.querySelectorAll('.stake-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (myCartelas.length > 0) return showAlert('በዚህ ዙር የተያዘ ካርቴላ አለህ።');
+        document.querySelectorAll('.stake-btn').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentStake = Number(btn.dataset.stake);
+        await loadLobby();
+      });
+    });
+
+    document.getElementById('startGameBtn').addEventListener('click', startGame);
+
+    document.getElementById('soundToggleBtn').addEventListener('click', () => {
+      soundOn = !soundOn;
+      document.getElementById('soundToggleBtn').textContent = soundOn ? '🔊 Sound' : '🔇 Muted';
+    });
+
+    document.getElementById('autoMarkBtn').addEventListener('click', () => {
+      autoMarkOn = !autoMarkOn;
+      const btn = document.getElementById('autoMarkBtn');
+      btn.textContent = autoMarkOn ? 'Auto ON' : 'Auto OFF';
+      btn.classList.toggle('on', autoMarkOn);
+      if (autoMarkOn) syncAutoMarkOnBoards();
+    });
+
+    document.getElementById('refreshBtn').addEventListener('click', () => {
+      renderBoard75();
+      renderRecentCalls();
+      if (autoMarkOn) syncAutoMarkOnBoards();
+    });
+
+    document.getElementById('leaveBtn').addEventListener('click', async () => {
+      stopAutoLoop();
+      stopCountdown();
+      document.getElementById('gameView').style.display = 'none';
+      document.getElementById('bottomBar').style.display = 'none';
+      document.getElementById('lobbyView').style.display = 'block';
+      await loadLobby();
+    });
+
+    document.getElementById('bingoBtn').addEventListener('click', async () => {
+      if (gameEnded) return;
+      if (currentDerash <= 0) return showAlert('የደራሽ ሽልማት የለም።');
+      if (!checkPlayerWinAndHighlight()) {
+        return showAlert('ገና ሙሉ 5 በአንድ መስመር የተጠሩ ቁጥሮች አልሞሉም!');
+      }
+
+      try {
+        const res = await fetch('/api/claim-win', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, reward: currentDerash })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (typeof data.balance === 'number') setBalance(data.balance);
+          else setBalance(currentBalance + currentDerash);
+        } else {
+          setBalance(currentBalance + currentDerash);
+        }
+      } catch (e) {
+        setBalance(currentBalance + currentDerash);
+      }
+
+      gameEnded = true;
+      stopAutoLoop();
+      speak('Bingo! You win!');
+      showAlert('🎉 BINGO! +' + currentDerash + ' ብር ወደ Balance ገባ!');
+      currentDerash = 0;
+      document.getElementById('stDerash').textContent = '0';
+    });
+
+    loadLobby();
+  </script>
+</body>
+</html>

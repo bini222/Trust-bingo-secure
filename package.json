@@ -1,12 +1,14 @@
 {
-  "name": "trust-bingo-secure",
-  "version": "1.0.0",
+  "name": "trust-bingo-miniapp",
+  "version": "2.0.0",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "telegraf": "^4.16.3",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "telegraf": "^4.16.3"
   }
 }
+

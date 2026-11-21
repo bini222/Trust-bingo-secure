@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Trust Bingo</title>
+  <title>Trust Bingo & Keno</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
-    body { margin: 0; background: #dfd3ee; color: #1e1830; padding-bottom: 72px; }
+    body { margin: 0; background: #dfd3ee; color: #1e1830; padding-bottom: 76px; }
     .topbar {
       background: #5c1b8a; color: #fff; padding: 11px 14px;
       display: flex; justify-content: space-between; align-items: center; font-weight: 800;
@@ -17,6 +17,15 @@
       border-radius: 999px; font-size: 12px; font-weight: 800;
     }
     .container { padding: 10px; max-width: 560px; margin: 0 auto; }
+
+    .mode-switch {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;
+    }
+    .mode-btn {
+      padding: 10px; border-radius: 10px; border: 2px solid #5c1b8a;
+      background: #f5effc; color: #5c1b8a; font-weight: 900; font-size: 13px; cursor: pointer;
+    }
+    .mode-btn.active { background: #5c1b8a; color: #fff; }
 
     .lobby-card {
       background: #efe8f8; border: 1px solid #c9b7e3;
@@ -36,7 +45,7 @@
     }
     .grid-300 {
       display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px;
-      max-height: 230px; overflow-y: auto; padding: 6px; background: #ddd0ef; border-radius: 10px;
+      max-height: 225px; overflow-y: auto; padding: 6px; background: #ddd0ef; border-radius: 10px;
     }
     .num-btn {
       padding: 7px 2px; border: 1px solid #b9a6d6; border-radius: 6px;
@@ -50,6 +59,37 @@
       background: #d97706; color: #fff; font-size: 15px; font-weight: 900; cursor: pointer;
     }
 
+    /* Keno 1-40 Styles */
+    .keno-grid {
+      display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px;
+      background: #ddd0ef; padding: 8px; border-radius: 12px; margin-bottom: 10px;
+    }
+    .keno-cell {
+      padding: 10px 2px; border-radius: 8px; border: 1px solid #b8a3d8;
+      background: #faf6ff; color: #1e1830; font-weight: 900; font-size: 12px;
+      text-align: center; cursor: pointer; user-select: none;
+    }
+    .keno-cell.picked { background: #5c1b8a; color: #fff; border-color: #5c1b8a; }
+    .keno-cell.drawn { background: #f59e0b; color: #1e1830; border-color: #d97706; }
+    .keno-cell.hit { background: #16a34a; color: #fff; border-color: #15803d; }
+    .drawn-strip {
+      display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
+      min-height: 42px; background: #f5effc; border: 1px solid #c6b4e0;
+      border-radius: 10px; padding: 8px; margin-bottom: 10px;
+    }
+    .keno-ball {
+      width: 32px; height: 32px; border-radius: 999px;
+      background: #6b1d9b; color: #fff; font-weight: 900; font-size: 12px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .keno-ball.hit-ball { background: #16a34a; }
+    .keno-summary {
+      background: #f5effc; border: 1px solid #c6b4e0; border-radius: 10px;
+      padding: 10px; display: flex; justify-content: space-between; font-weight: 800;
+      font-size: 13px; margin-bottom: 10px;
+    }
+
+    /* Bingo Arena Styles */
     .stats-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-bottom: 10px; }
     .stat-box {
       background: #f5effc; border: 1px solid #c6b4e0; border-radius: 8px;
@@ -57,7 +97,6 @@
     }
     .stat-lbl { font-size: 10px; font-weight: 700; color: #4a3f6b; }
     .stat-val { font-size: 11px; font-weight: 900; color: #1e1830; margin-top: 2px; }
-
     .arena-split { display: grid; grid-template-columns: 148px 1fr; gap: 10px; align-items: start; }
     .board75-card { background: #efe8f8; border: 1px solid #c5b2e0; border-radius: 12px; padding: 6px; }
     .b75-header { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin-bottom: 4px; }
@@ -74,7 +113,6 @@
     }
     .b75-cell.called { background: #ea580c; color: #fff; }
     .b75-cell.latest { background: #16a34a; color: #fff; }
-
     .right-panel { display: flex; flex-direction: column; gap: 8px; }
     .current-call-bar {
       background: #6b1d9b; color: #fff; border-radius: 12px;
@@ -93,7 +131,6 @@
     .rec-0 { background: #7e22ce; }
     .rec-1 { background: #dc2626; }
     .rec-2 { background: #2563eb; }
-
     .controls-strip {
       display: flex; justify-content: space-between; align-items: center; gap: 6px;
       background: #f5effc; border: 1px solid #c6b4e0; border-radius: 10px;
@@ -108,7 +145,6 @@
       padding: 3px 9px; font-size: 11px; font-weight: 900; color: #6b21a8; cursor: pointer;
     }
     .auto-toggle.on { background: #16a34a; border-color: #16a34a; color: #fff; }
-
     .player-area-card { background: #dfd3ee; border: 1px solid #c2aee0; border-radius: 12px; padding: 10px; min-height: 210px; }
     .my-cartela-box { background: #f7f2fc; border: 1px solid #c2aee0; border-radius: 10px; padding: 8px; margin-bottom: 8px; }
     .my-cartela-title { display: flex; justify-content: space-between; font-size: 12px; font-weight: 900; color: #5c1b8a; margin-bottom: 6px; }
@@ -121,13 +157,11 @@
     .c5-cell.marked { background: #ea580c; color: #fff; border-color: #ea580c; }
     .c5-cell.free { background: #16a34a; color: #fff; border-color: #16a34a; }
     .c5-cell.win-line { background: #2563eb; color: #fff; border-color: #2563eb; }
-
     .ai-mini-bar {
       background: #f3ecfc; border: 1px solid #c5b2e0; border-radius: 10px;
       padding: 7px 10px; font-size: 12px; font-weight: 800;
       display: flex; justify-content: space-between; color: #3b2868;
     }
-
     .bottom-actions {
       position: fixed; bottom: 0; left: 0; right: 0;
       background: #efe7f8; border-top: 1px solid #c4b0e0;
@@ -140,87 +174,128 @@
 </head>
 <body>
   <div class="topbar">
-    <span>Trust Bingo</span>
+    <span>Trust Bingo & Keno</span>
     <span class="pill" id="balPill">Balance: 100.00 ብር</span>
   </div>
 
   <div class="container">
-    <div id="lobbyView">
-      <div class="countdown-box">
-        <div>
-          <div style="font-size:13px;">Match Countdown</div>
-          <div style="font-size:11px;opacity:0.88;">ካርቴላ ስትይዝ ጊዜ ይቆጠራል • Solo vs AI</div>
-        </div>
-        <div style="font-size:20px;" id="countdownText">10s</div>
-      </div>
-
-      <div class="lobby-card">
-        <div class="lobby-head">
-          <span>1. Stake ምረጥ</span>
-          <span id="lobbyDerash">ደራሽ፦ 0 ብር</span>
-        </div>
-        <div class="stakes">
-          <button class="stake-btn active" data-stake="10">10 ብር</button>
-          <button class="stake-btn" data-stake="20">20 ብር</button>
-          <button class="stake-btn" data-stake="50">50 ብር</button>
-        </div>
-      </div>
-
-      <div class="lobby-card">
-        <div class="lobby-head">
-          <span>2. ካርቴላ ምረጥ (#1 - #300)</span>
-          <span id="pickedCount">0 ተመርጧል</span>
-        </div>
-        <div class="grid-300" id="cartelaGrid"></div>
-      </div>
-
-      <button class="start-main-btn" id="startGameBtn">ጨዋታ ጀምር (Play)</button>
+    <div class="mode-switch">
+      <button class="mode-btn active" id="tabBingoBtn">🎲 Bingo (1-75)</button>
+      <button class="mode-btn" id="tabKenoBtn">🎱 Keno (1-40 • 10 Balls)</button>
     </div>
 
-    <div id="gameView" style="display:none;">
-      <div class="stats-strip">
-        <div class="stat-box"><div class="stat-lbl">Game ID</div><div class="stat-val" id="stGameId">-</div></div>
-        <div class="stat-box"><div class="stat-lbl">Derash</div><div class="stat-val" id="stDerash">0</div></div>
-        <div class="stat-box"><div class="stat-lbl">Players</div><div class="stat-val" id="stPlayers">2</div></div>
-        <div class="stat-box"><div class="stat-lbl">Stake</div><div class="stat-val" id="stStake">10</div></div>
-        <div class="stat-box"><div class="stat-lbl">Called</div><div class="stat-val" id="stCalled">0/75</div></div>
+    <!-- BINGO SECTION -->
+    <div id="bingoSection">
+      <div id="lobbyView">
+        <div class="countdown-box">
+          <div>
+            <div style="font-size:13px;">Match Countdown</div>
+            <div style="font-size:11px;opacity:0.88;">ካርቴላ ስትይዝ ጊዜ ይቆጠራል • Solo vs AI</div>
+          </div>
+          <div style="font-size:20px;" id="countdownText">10s</div>
+        </div>
+
+        <div class="lobby-card">
+          <div class="lobby-head">
+            <span>1. Stake ምረጥ</span>
+            <span id="lobbyDerash">ደራሽ፦ 0 ብር</span>
+          </div>
+          <div class="stakes">
+            <button class="stake-btn active" data-stake="10">10 ብር</button>
+            <button class="stake-btn" data-stake="20">20 ብር</button>
+            <button class="stake-btn" data-stake="50">50 ብር</button>
+          </div>
+        </div>
+
+        <div class="lobby-card">
+          <div class="lobby-head">
+            <span>2. ካርቴላ ምረጥ (#1 - #300)</span>
+            <span id="pickedCount">0 ተመርጧል</span>
+          </div>
+          <div class="grid-300" id="cartelaGrid"></div>
+        </div>
+
+        <button class="start-main-btn" id="startGameBtn">ጨዋታ ጀምር (Play)</button>
       </div>
 
-      <div class="arena-split">
-        <div class="board75-card">
-          <div class="b75-header">
-            <div class="b75-h h-B">B</div>
-            <div class="b75-h h-I">I</div>
-            <div class="b75-h h-N">N</div>
-            <div class="b75-h h-G">G</div>
-            <div class="b75-h h-O">O</div>
-          </div>
-          <div class="b75-grid" id="board75Grid"></div>
+      <div id="gameView" style="display:none;">
+        <div class="stats-strip">
+          <div class="stat-box"><div class="stat-lbl">Game ID</div><div class="stat-val" id="stGameId">-</div></div>
+          <div class="stat-box"><div class="stat-lbl">Derash</div><div class="stat-val" id="stDerash">0</div></div>
+          <div class="stat-box"><div class="stat-lbl">Players</div><div class="stat-val" id="stPlayers">2</div></div>
+          <div class="stat-box"><div class="stat-lbl">Stake</div><div class="stat-val" id="stStake">10</div></div>
+          <div class="stat-box"><div class="stat-lbl">Called</div><div class="stat-val" id="stCalled">0/75</div></div>
         </div>
 
-        <div class="right-panel">
-          <div class="current-call-bar">
-            <span>Current Call</span>
-            <span class="call-badge-pill" id="currentCallPill">-</span>
+        <div class="arena-split">
+          <div class="board75-card">
+            <div class="b75-header">
+              <div class="b75-h h-B">B</div>
+              <div class="b75-h h-I">I</div>
+              <div class="b75-h h-N">N</div>
+              <div class="b75-h h-G">G</div>
+              <div class="b75-h h-O">O</div>
+            </div>
+            <div class="b75-grid" id="board75Grid"></div>
           </div>
 
-          <div class="recent-calls-box" id="recentCallsBox"></div>
+          <div class="right-panel">
+            <div class="current-call-bar">
+              <span>Current Call</span>
+              <span class="call-badge-pill" id="currentCallPill">-</span>
+            </div>
 
-          <div class="controls-strip">
-            <button class="mini-ctrl-btn" id="soundToggleBtn">🔊 Sound</button>
-            <span id="cartelaBadgeText">Cartela #0</span>
-            <button class="auto-toggle" id="autoMarkBtn">Auto OFF</button>
-          </div>
+            <div class="recent-calls-box" id="recentCallsBox"></div>
 
-          <div class="player-area-card" id="playerAreaCard">
-            <div id="myBoardsList"></div>
-          </div>
+            <div class="controls-strip">
+              <button class="mini-ctrl-btn" id="soundToggleBtn">🔊 Sound</button>
+              <span id="cartelaBadgeText">Cartela #0</span>
+              <button class="auto-toggle" id="autoMarkBtn">Auto OFF</button>
+            </div>
 
-          <div class="ai-mini-bar">
-            <span>🤖 AI (#<span id="aiIdText">-</span>)</span>
-            <span id="aiLineText">Line: 1/5</span>
+            <div class="player-area-card" id="playerAreaCard">
+              <div id="myBoardsList"></div>
+            </div>
+
+            <div class="ai-mini-bar">
+              <span>🤖 AI (#<span id="aiIdText">-</span>)</span>
+              <span id="aiLineText">Line: 1/5</span>
+            </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- KENO (1-40, 10 DRAWS) SECTION -->
+    <div id="kenoSection" style="display:none;">
+      <div class="lobby-card">
+        <div class="lobby-head">
+          <span>Keno Stake (1–40 • 10 Draws)</span>
+          <span id="kenoPickCount">0/5 ተመርጧል</span>
+        </div>
+        <div class="stakes">
+          <button class="stake-btn keno-stake active" data-kstake="10">10 ብር</button>
+          <button class="stake-btn keno-stake" data-kstake="20">20 ብር</button>
+          <button class="stake-btn keno-stake" data-kstake="50">50 ብር</button>
+        </div>
+      </div>
+
+      <div class="lobby-card">
+        <div class="lobby-head">
+          <span>ከ 1–40 እስከ 5 ቁጥሮች ምረጥ</span>
+          <button class="mini-ctrl-btn" id="kenoClearBtn">አጽዳ</button>
+        </div>
+        <div class="keno-grid" id="kenoGrid"></div>
+
+        <div style="font-size:12px;font-weight:800;margin-bottom:4px;">የወጡ 10 ቁጥሮች (Drawn 10):</div>
+        <div class="drawn-strip" id="kenoDrawnStrip"></div>
+
+        <div class="keno-summary">
+          <span id="kenoHitsText">Hits: 0</span>
+          <span id="kenoWinText">Win: 0 ብር</span>
+        </div>
+
+        <button class="start-main-btn" id="kenoDrawBtn">10 ቁጥሮች አውጣ (Draw 10)</button>
       </div>
     </div>
   </div>
@@ -263,6 +338,12 @@
     let countdownSec = 10;
     let countdownTimer = null;
 
+    // Keno state
+    let kenoStake = 10;
+    let kenoPicked = new Set();
+    let kenoDrawn = new Set();
+    let kenoDrawing = false;
+
     function showAlert(msg) {
       if (tg && tg.showAlert) tg.showAlert(msg);
       else alert(msg);
@@ -274,482 +355,107 @@
       document.getElementById('balPill').textContent = 'Balance: ' + currentBalance.toFixed(2) + ' ብር';
     }
 
-    function letterFor(num) {
-      if (num <= 15) return 'B';
-      if (num <= 30) return 'I';
-      if (num <= 45) return 'N';
-      if (num <= 60) return 'G';
-      return 'O';
-    }
-
-    function speak(text) {
-      if (!soundOn) return;
-      try {
-        if ('speechSynthesis' in window) {
-          window.speechSynthesis.cancel();
-          const u = new SpeechSynthesisUtterance(text);
-          u.rate = 1.05;
-          window.speechSynthesis.speak(u);
-        }
-      } catch (e) {}
-    }
-
-    function stopCountdown() {
-      if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
-    }
-
-    function startCountdown() {
-      stopCountdown();
-      countdownSec = 10;
-      document.getElementById('countdownText').textContent = countdownSec + 's';
-      countdownTimer = setInterval(async () => {
-        if (myCartelas.length === 0) {
-          countdownSec = 10;
-          document.getElementById('countdownText').textContent = '10s';
-          return;
-        }
-        countdownSec -= 1;
-        document.getElementById('countdownText').textContent = Math.max(0, countdownSec) + 's';
-        if (countdownSec <= 0) {
-          stopCountdown();
-          await startGame();
-        }
-      }, 1000);
-    }
-
-    function stopAutoLoop() {
-      if (autoCallTimer) { clearInterval(autoCallTimer); autoCallTimer = null; }
-    }
-
-    function syncAutoMarkOnBoards() {
-      if (!autoMarkOn) return;
-      activeBoards.forEach((b) => {
-        (b._cells || []).forEach((cell) => {
-          const n = Number(cell.dataset.num);
-          if (Number.isFinite(n) && calledSet.has(n)) {
-            cell.classList.add('marked');
-          }
-        });
-      });
-    }
-
-    function renderGrid300() {
-      const grid = document.getElementById('cartelaGrid');
-      grid.innerHTML = '';
-      for (let i = 1; i <= 300; i++) {
-        const btn = document.createElement('button');
-        btn.className = 'num-btn';
-        btn.textContent = i;
-        if (myCartelas.includes(i)) {
-          btn.classList.add('mine');
-        } else if (i === aiCartelaId) {
-          btn.classList.add('ai');
-          btn.disabled = true;
-        } else if (takenCartelas.includes(i)) {
-          btn.classList.add('taken');
-          btn.disabled = true;
-        }
-        btn.addEventListener('click', () => takeCartela(i));
-        grid.appendChild(btn);
+    // Mode switch
+    document.getElementById('tabBingoBtn').addEventListener('click', () => {
+      document.getElementById('tabBingoBtn').classList.add('active');
+      document.getElementById('tabKenoBtn').classList.remove('active');
+      document.getElementById('bingoSection').style.display = 'block';
+      document.getElementById('kenoSection').style.display = 'none';
+      if (document.getElementById('gameView').style.display === 'block') {
+        document.getElementById('bottomBar').style.display = 'grid';
       }
-    }
-
-    async function loadLobby() {
-      document.getElementById('pickedCount').textContent = myCartelas.length + ' ተመርጧል';
-      const estDerash = Math.round((myCartelas.length + 1) * currentStake * 0.8);
-      document.getElementById('lobbyDerash').textContent = 'ደራሽ፦ ' + estDerash + ' ብር';
-      renderGrid300();
-
-      try {
-        const res = await fetch('/api/state?userId=' + encodeURIComponent(userId) + '&stake=' + currentStake);
-        if (res.ok) {
-          const data = await res.json();
-          if (typeof data.balance === 'number') setBalance(data.balance);
-          if (data.room && Array.isArray(data.room.takenCartelas)) {
-            takenCartelas = data.room.takenCartelas;
-          }
-          if (data.room && typeof data.room.derash === 'number' && data.room.derash > 0) {
-            document.getElementById('lobbyDerash').textContent = 'ደራሽ፦ ' + data.room.derash + ' ብር';
-          }
-          renderGrid300();
-        }
-      } catch (e) {}
-    }
-
-    async function takeCartela(id) {
-      if (myCartelas.includes(id)) return;
-      if (currentBalance < currentStake) {
-        return showAlert('ባላንስ በቂ አይደለም።');
-      }
-
-      let serverOk = false;
-      try {
-        const res = await fetch('/api/take-cartela', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId, stake: currentStake, cartelaId: id })
-        });
-        const data = await res.json();
-        if (res.ok) {
-          serverOk = true;
-          if (typeof data.balance === 'number') setBalance(data.balance);
-          if (data.room && Array.isArray(data.room.takenCartelas)) {
-            takenCartelas = data.room.takenCartelas;
-          }
-        }
-      } catch (e) {}
-
-      if (!serverOk) {
-        setBalance(currentBalance - currentStake);
-      }
-
-      myCartelas.push(id);
-      if (!aiCartelaId) {
-        let cand = ((id * 29 + 13) % 300) + 1;
-        if (myCartelas.includes(cand)) cand = (cand % 300) + 1;
-        aiCartelaId = cand;
-      }
-
-      await loadLobby();
-      startCountdown();
-    }
-
-    function buildCartelaGrid(id) {
-      const ranges = [[1, 15], [16, 30], [31, 45], [46, 60], [61, 75]];
-      let s = (id * 7919 + 104729) % 2147483647;
-      const rand = () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
-      const cols = ranges.map(([lo, hi]) => {
-        const arr = [];
-        for (let n = lo; n <= hi; n++) arr.push(n);
-        for (let i = arr.length - 1; i > 0; i--) {
-          const j = Math.floor(rand() * (i + 1));
-          [arr[i], arr[j]] = [arr[j], arr[i]];
-        }
-        return arr.slice(0, 5);
-      });
-      const card = [];
-      for (let r = 0; r < 5; r++) {
-        const row = [];
-        for (let c = 0; c < 5; c++) row.push(r === 2 && c === 2 ? 'FREE' : cols[c][r]);
-        card.push(row);
-      }
-      return card;
-    }
-
-    function makeShuffled75() {
-      const arr = [];
-      for (let i = 1; i <= 75; i++) arr.push(i);
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
-      return arr;
-    }
-
-    function findWinningIndices(card, markedSet) {
-      const lines = [];
-      for (let r = 0; r < 5; r++) lines.push([0,1,2,3,4].map((c) => [r, c]));
-      for (let c = 0; c < 5; c++) lines.push([0,1,2,3,4].map((r) => [r, c]));
-      lines.push([0,1,2,3,4].map((i) => [i, i]));
-      lines.push([0,1,2,3,4].map((i) => [i, 4 - i]));
-      for (const line of lines) {
-        if (line.every(([r, c]) => markedSet.has(String(card[r][c])))) return line;
-      }
-      return null;
-    }
-
-    function checkPlayerWinAndHighlight() {
-      for (const b of activeBoards) {
-        const card = b.card || [];
-        const marked = new Set(['FREE']);
-        const cells = b._cells || [];
-        for (let r = 0; r < 5; r++) {
-          for (let c = 0; c < 5; c++) {
-            const val = card[r][c];
-            if (val === 'FREE') continue;
-            const el = cells[r * 5 + c];
-            if (el && el.classList.contains('marked') && calledSet.has(Number(val))) {
-              marked.add(String(val));
-            }
-          }
-        }
-        const winLine = findWinningIndices(card, marked);
-        if (winLine) {
-          winLine.forEach(([r, c]) => {
-            if (cells[r * 5 + c]) cells[r * 5 + c].classList.add('win-line');
-          });
-          return true;
-        }
-      }
-      return false;
-    }
-
-    function stepAi(num) {
-      if (!aiCard || gameEnded) return;
-      for (let r = 0; r < 5; r++) {
-        for (let c = 0; c < 5; c++) {
-          if (aiCard[r][c] === num) aiMarked.add(String(num));
-        }
-      }
-      let best = 0;
-      for (let r = 0; r < 5; r++) {
-        const cnt = [0,1,2,3,4].filter((c) => aiMarked.has(String(aiCard[r][c]))).length;
-        if (cnt > best) best = cnt;
-      }
-      for (let c = 0; c < 5; c++) {
-        const cnt = [0,1,2,3,4].filter((r) => aiMarked.has(String(aiCard[r][c]))).length;
-        if (cnt > best) best = cnt;
-      }
-      document.getElementById('aiLineText').textContent = best === 4 ? '1 AWAY! 🔥' : 'Line: ' + best + '/5';
-
-      if (findWinningIndices(aiCard, aiMarked)) {
-        gameEnded = true;
-        stopAutoLoop();
-        speak('AI wins Bingo');
-        showAlert('🤖 AI ቀድሞ BINGO አሸነፈ! እንደገና ለመጫወት Leave ብለህ ሞክር።');
-      }
-    }
-
-    function renderBoard75() {
-      const grid = document.getElementById('board75Grid');
-      grid.innerHTML = '';
-      for (let row = 0; row < 15; row++) {
-        for (let col = 0; col < 5; col++) {
-          const n = col * 15 + row + 1;
-          const div = document.createElement('div');
-          div.className = 'b75-cell';
-          div.textContent = n;
-          if (n === latestNum) div.classList.add('latest');
-          else if (calledSet.has(n)) div.classList.add('called');
-          grid.appendChild(div);
-        }
-      }
-    }
-
-    function renderRecentCalls() {
-      const box = document.getElementById('recentCallsBox');
-      box.innerHTML = '';
-      recentCalls.slice(0, 3).forEach((item, idx) => {
-        const orb = document.createElement('div');
-        orb.className = 'rec-orb rec-' + (idx % 3);
-        orb.textContent = item.replace('-', '');
-        box.appendChild(orb);
-      });
-    }
-
-    function renderMyBoards() {
-      const list = document.getElementById('myBoardsList');
-      list.innerHTML = '';
-      document.getElementById('cartelaBadgeText').textContent =
-        currentStake + ' № ' + activeBoards.map((x) => x.id).join(',');
-
-      activeBoards.forEach((b) => {
-        const box = document.createElement('div');
-        box.className = 'my-cartela-box';
-        box.innerHTML = '<div class="my-cartela-title"><span>Cartela #' + b.id + '</span><span>5 in Row</span></div>';
-
-        const grid = document.createElement('div');
-        grid.className = 'c5-grid';
-        b._cells = [];
-
-        (b.card || []).forEach((row) => {
-          row.forEach((val) => {
-            const cell = document.createElement('div');
-            cell.className = 'c5-cell';
-            cell.dataset.num = String(val);
-            cell.textContent = val;
-            if (val === 'FREE') {
-              cell.classList.add('free', 'marked');
-            } else {
-              if (autoMarkOn && calledSet.has(Number(val))) {
-                cell.classList.add('marked');
-              }
-              cell.addEventListener('click', () => {
-                if (autoMarkOn) {
-                  return showAlert('Auto ON ሲሆን ቁጥሮች በራሳቸው ይሰመራሉ። በእጅ ለመንካት Auto OFF አድርግ።');
-                }
-                if (!calledSet.has(Number(val))) {
-                  return showAlert('ቁጥር ' + val + ' ገና አልተጠራም።');
-                }
-                cell.classList.toggle('marked');
-              });
-            }
-            b._cells.push(cell);
-            grid.appendChild(cell);
-          });
-        });
-
-        box.appendChild(grid);
-        list.appendChild(box);
-      });
-    }
-
-    function drawOneCall() {
-      if (gameEnded) return;
-      if (drawPos >= drawOrder.length) {
-        stopAutoLoop();
-        return;
-      }
-      const num = drawOrder[drawPos++];
-      latestNum = num;
-      calledSet.add(num);
-      const code = letterFor(num) + '-' + num;
-      recentCalls.unshift(code);
-
-      document.getElementById('currentCallPill').textContent = code;
-      document.getElementById('stCalled').textContent = drawPos + '/75';
-      renderBoard75();
-      renderRecentCalls();
-
-      if (autoMarkOn) {
-        activeBoards.forEach((b) => {
-          (b._cells || []).forEach((cell) => {
-            if (Number(cell.dataset.num) === num) cell.classList.add('marked');
-          });
-        });
-      }
-
-      speak(letterFor(num) + ' ' + num);
-      stepAi(num);
-    }
-
-    async function startGame() {
-      if (myCartelas.length === 0) return showAlert('መጀመሪያ ቢያንስ አንድ ካርቴላ ያዝ።');
-      stopCountdown();
-
-      const pickedIds = [...myCartelas];
-      let serverData = null;
-      try {
-        const res = await fetch('/api/start-game', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId, stake: currentStake, cartelaIds: pickedIds })
-        });
-        if (res.ok) serverData = await res.json();
-      } catch (e) {}
-
-      gameId = String(Date.now()).slice(-7) + '_TB';
-      drawOrder = (serverData && Array.isArray(serverData.drawOrder) && serverData.drawOrder.length)
-        ? serverData.drawOrder
-        : makeShuffled75();
-      calledSet = new Set();
-      latestNum = null;
-      drawPos = 0;
-      recentCalls = [];
-      gameEnded = false;
-
-      currentDerash = (serverData && typeof serverData.derash === 'number' && serverData.derash > 0)
-        ? serverData.derash
-        : Math.round((pickedIds.length + 1) * currentStake * 0.8);
-
-      activeBoards = (serverData && Array.isArray(serverData.boards) && serverData.boards.length)
-        ? serverData.boards
-        : pickedIds.map((id) => ({ id, card: buildCartelaGrid(id) }));
-
-      myCartelas = [];
-
-      const chosenAi = aiCartelaId || 55;
-      aiCard = buildCartelaGrid(chosenAi);
-      aiMarked = new Set(['FREE']);
-      document.getElementById('aiIdText').textContent = chosenAi;
-      document.getElementById('aiLineText').textContent = 'Line: 1/5';
-
-      document.getElementById('stGameId').textContent = gameId;
-      document.getElementById('stDerash').textContent = currentDerash;
-      document.getElementById('stPlayers').textContent = '2';
-      document.getElementById('stStake').textContent = currentStake;
-      document.getElementById('stCalled').textContent = '0/75';
-      document.getElementById('currentCallPill').textContent = '-';
-
-      renderBoard75();
-      renderRecentCalls();
-      renderMyBoards();
-
-      document.getElementById('lobbyView').style.display = 'none';
-      document.getElementById('gameView').style.display = 'block';
-      document.getElementById('bottomBar').style.display = 'grid';
-
-      stopAutoLoop();
-      drawOneCall();
-      autoCallTimer = setInterval(() => {
-        if (gameEnded || drawPos >= drawOrder.length) stopAutoLoop();
-        else drawOneCall();
-      }, 2500);
-    }
-
-    document.querySelectorAll('.stake-btn').forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        if (myCartelas.length > 0) return showAlert('በዚህ ዙር የተያዘ ካርቴላ አለህ።');
-        document.querySelectorAll('.stake-btn').forEach((b) => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentStake = Number(btn.dataset.stake);
-        await loadLobby();
-      });
     });
 
-    document.getElementById('startGameBtn').addEventListener('click', startGame);
-
-    document.getElementById('soundToggleBtn').addEventListener('click', () => {
-      soundOn = !soundOn;
-      document.getElementById('soundToggleBtn').textContent = soundOn ? '🔊 Sound' : '🔇 Muted';
-    });
-
-    document.getElementById('autoMarkBtn').addEventListener('click', () => {
-      autoMarkOn = !autoMarkOn;
-      const btn = document.getElementById('autoMarkBtn');
-      btn.textContent = autoMarkOn ? 'Auto ON' : 'Auto OFF';
-      btn.classList.toggle('on', autoMarkOn);
-      if (autoMarkOn) syncAutoMarkOnBoards();
-    });
-
-    document.getElementById('refreshBtn').addEventListener('click', () => {
-      renderBoard75();
-      renderRecentCalls();
-      if (autoMarkOn) syncAutoMarkOnBoards();
-    });
-
-    document.getElementById('leaveBtn').addEventListener('click', async () => {
-      stopAutoLoop();
-      stopCountdown();
-      document.getElementById('gameView').style.display = 'none';
+    document.getElementById('tabKenoBtn').addEventListener('click', () => {
+      document.getElementById('tabKenoBtn').classList.add('active');
+      document.getElementById('tabBingoBtn').classList.remove('active');
+      document.getElementById('bingoSection').style.display = 'none';
+      document.getElementById('kenoSection').style.display = 'block';
       document.getElementById('bottomBar').style.display = 'none';
-      document.getElementById('lobbyView').style.display = 'block';
-      await loadLobby();
+      renderKenoGrid();
     });
 
-    document.getElementById('bingoBtn').addEventListener('click', async () => {
-      if (gameEnded) return;
-      if (currentDerash <= 0) return showAlert('የደራሽ ሽልማት የለም።');
-      if (!checkPlayerWinAndHighlight()) {
-        return showAlert('ገና ሙሉ 5 በአንድ መስመር የተጠሩ ቁጥሮች አልሞሉም!');
-      }
+    // Keno logic (1-40, 10 draws)
+    document.querySelectorAll('.keno-stake').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.keno-stake').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        kenoStake = Number(btn.dataset.kstake);
+      });
+    });
 
-      try {
-        const res = await fetch('/api/claim-win', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId, reward: currentDerash })
+    function renderKenoGrid() {
+      const grid = document.getElementById('kenoGrid');
+      grid.innerHTML = '';
+      for (let i = 1; i <= 40; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'keno-cell';
+        cell.textContent = i;
+        const isPicked = kenoPicked.has(i);
+        const isDrawn = kenoDrawn.has(i);
+        if (isPicked && isDrawn) cell.classList.add('hit');
+        else if (isDrawn) cell.classList.add('drawn');
+        else if (isPicked) cell.classList.add('picked');
+
+        cell.addEventListener('click', () => {
+          if (kenoDrawing) return;
+          if (kenoPicked.has(i)) {
+            kenoPicked.delete(i);
+          } else {
+            if (kenoPicked.size >= 5) return showAlert('ቢበዛ 5 ቁጥሮች ብቻ መምረጥ ይቻላል።');
+            kenoPicked.add(i);
+          }
+          kenoDrawn.clear();
+          document.getElementById('kenoDrawnStrip').innerHTML = '';
+          document.getElementById('kenoHitsText').textContent = 'Hits: 0';
+          document.getElementById('kenoWinText').textContent = 'Win: 0 ብር';
+          document.getElementById('kenoPickCount').textContent = kenoPicked.size + '/5 ተመርጧል';
+          renderKenoGrid();
         });
-        if (res.ok) {
-          const data = await res.json();
-          if (typeof data.balance === 'number') setBalance(data.balance);
-          else setBalance(currentBalance + currentDerash);
-        } else {
-          setBalance(currentBalance + currentDerash);
-        }
-      } catch (e) {
-        setBalance(currentBalance + currentDerash);
+        grid.appendChild(cell);
       }
+    }
 
-      gameEnded = true;
-      stopAutoLoop();
-      speak('Bingo! You win!');
-      showAlert('🎉 BINGO! +' + currentDerash + ' ብር ወደ Balance ገባ!');
-      currentDerash = 0;
-      document.getElementById('stDerash').textContent = '0';
+    document.getElementById('kenoClearBtn').addEventListener('click', () => {
+      if (kenoDrawing) return;
+      kenoPicked.clear();
+      kenoDrawn.clear();
+      document.getElementById('kenoDrawnStrip').innerHTML = '';
+      document.getElementById('kenoHitsText').textContent = 'Hits: 0';
+      document.getElementById('kenoWinText').textContent = 'Win: 0 ብር';
+      document.getElementById('kenoPickCount').textContent = '0/5 ተመርጧል';
+      renderKenoGrid();
     });
 
-    loadLobby();
-  </script>
-</body>
-</html>
+    function calcKenoPayout(hits, stake) {
+      if (hits >= 4) return stake * 15;
+      if (hits === 3) return stake * 5;
+      if (hits === 2) return stake * 2;
+      if (hits === 1) return Math.round(stake * 0.5);
+      return 0;
+    }
+
+    document.getElementById('kenoDrawBtn').addEventListener('click', async () => {
+      if (kenoDrawing) return;
+      if (kenoPicked.size === 0) return showAlert('መጀመሪያ ከ 1–40 ቢያንስ አንድ ቁጥር ምረጥ።');
+      if (currentBalance < kenoStake) return showAlert('ባላንስ በቂ አይደለም።');
+
+      kenoDrawing = true;
+      kenoDrawn.clear();
+      document.getElementById('kenoDrawnStrip').innerHTML = '';
+      document.getElementById('kenoHitsText').textContent = 'Hits: 0';
+      document.getElementById('kenoWinText').textContent = 'Win: 0 ብር';
+
+      setBalance(currentBalance - kenoStake);
+
+      const pool = [];
+      for (let n = 1; n <= 40; n++) pool.push(n);
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      const tenBalls = pool.slice(0, 10);
+
+      let idx = 0;
+      const timer = setInterval(async () => {
+        const num = tenBalls[id

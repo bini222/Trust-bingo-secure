@@ -66,6 +66,9 @@ let usedProofs = loadJson(PROOFS_FILE, {
     sms: {}
 });
 
+// ለ Admin በአዝራር ሲጫን የሚጠበቅ የ Credit ዒላማ ({ targetUserId })
+let adminPendingCreditTarget = null;
+
 function saveUsers() {
     saveJson(USERS_FILE, users);
 }
@@ -97,7 +100,6 @@ function smsSentToOwner(text) {
     const t = normalizeText(text);
     const compact = t.replace(/[\s\-+*]/g, '');
 
-    // ገንዘቡ ወደ ሌላ ሰው ስም ወይም ቁጥር የተላከ ከሆነ ውድቅ አድርግ
     const sentToOtherPerson =
         t.includes('to birhanu') ||
         compact.includes('2519****6699') ||
@@ -127,15 +129,30 @@ async function notifyAdmin(fn) {
     }
 }
 
+function creditUserWallet(targetId, amount) {
+    const cleanId = String(targetId).trim();
+    const num = Number(amount);
+    if (!cleanId || !Number.isFinite(num) || num <= 0) return null;
+
+    const targetUser = getUser(cleanId);
+    targetUser.mainWallet = Number((targetUser.mainWallet + num).toFixed(2));
+    saveUsers();
+    return targetUser;
+}
+
 function getUser(userId) {
     const key = String(userId);
     if (!users[key]) {
         users[key] = {
             mainWallet: 0,
             playWallet: 100,
-            pendingDepositMethod: null
+            pendingDepositMethod: null,
+            pendingWithdrawMethod: null // 'Telebirr' ወይም 'CBE'
         };
         saveUsers();
+    }
+    if (users[key].pendingWithdrawMethod === undefined) {
+        users[key].pendingWithdrawMethod = null;
     }
     return users[key];
 }
@@ -264,6 +281,7 @@ function getPlayReplyMarkup(userId) {
 bot.start((ctx) => {
     const user = getUser(ctx.from.id);
     user.pendingDepositMethod = null;
+    user.pendingWithdrawMethod = null;
     saveUsers();
     ctx.reply(
         `🎉 እንኳን ወደ <b>Trust Bingo</b> በደህና መጣህ!\n\n` +
@@ -307,6 +325,7 @@ bot.hears(['💳 Check Balance', '💰 ባላንስ (Balance)'], (ctx) => {
 bot.hears('💰 Deposit', (ctx) => {
     const user = getUser(ctx.from.id);
     user.pendingDepositMethod = null;
+    user.pendingWithdrawMethod = null;
     saveUsers();
     ctx.reply(
         `💳 ገንዘብ ለማስገባት የመክፈያ ዘዴ ምረጥ፦`,
@@ -324,6 +343,7 @@ bot.action(/^deposit_(Telebirr|CBE)$/, async (ctx) => {
     const info = PAYMENT_ACCOUNTS[method];
     const user = getUser(ctx.from.id);
     user.pendingDepositMethod = method;
+    user.pendingWithdrawMethod = null;
     saveUsers();
 
     await ctx.answerCbQuery(`${method} ተመርጧል`);
@@ -332,6 +352,20 @@ bot.action(/^deposit_(Telebirr|CBE)$/, async (ctx) => {
         `📌 አካውንት / ስልክ፦ <code>${info.account}</code>\n` +
         `👤 ስም፦ <b>${info.holder}</b>\n\n` +
         `ክፍያውን ወደ <b>${info.holder} (${info.account})</b> ከፈጸምክ በኋላ <b>የክፍያ ስክሪንሾት (Photo)</b> ወይም <b>የ SMS መልዕክት (SMS Copy)</b> ላክ፦`,
+        { parse_mode: 'HTML' }
+    );
+});
+
+// Admin የ "Credit User" ቁልፍ ሲጫን
+bot.action(/^admin_credit_(\d+)$/, async (ctx) => {
+    if (!ADMIN_ID || String(ctx.from.id) !== ADMIN_ID) {
+        return ctx.answerCbQuery('Admin only', { show_alert: true });
+    }
+    const targetUserId = ctx.match[1];
+    adminPendingCreditTarget = targetUserId;
+    await ctx.answerCbQuery(`User ${targetUserId} ተመርጧል`);
+    await ctx.reply(
+        `💳 ለ User ID <code>${targetUserId}</code> የምትጨምረውን የብር መጠን ጻፍ (ለምሳሌ፦ <code>100</code>)፦`,
         { parse_mode: 'HTML' }
     );
 });
@@ -375,13 +409,15 @@ bot.on('photo', async (ctx) => {
                 `🔔 አዲስ Deposit Screenshot (${method})\n` +
                 `👤 User ID: ${ctx.from.id}\n` +
                 `📛 Name: ${ctx.from.first_name || 'User'} (${usernameTag})${caption}\n` +
-                `⚠️ በስክሪንሾቱ ላይ Biniyam (0912698277 / 1000161123726) መሆኑን አረጋግጥ!\n\n` +
-                `ባላንስ ለመጨመር፦ /credit ${ctx.from.id} <amount>`
+                `⚠️ በስክሪንሾቱ ላይ Biniyam (0912698277 / 1000161123726) መሆኑን አረጋግጥ!`,
+            ...Markup.inlineKeyboard([
+                [Markup.button.callback(`💳 Credit User (${ctx.from.id})`, `admin_credit_${ctx.from.id}`)]
+            ])
         })
     );
 });
 
-// --- ለ Admin ባላንስ መጨመር ---
+// --- ለ Admin ባላንስ መጨመር (/credit <userId> <amount>) ---
 bot.command('credit', (ctx) => {
     if (!ADMIN_ID || String(ctx.from.id) !== ADMIN_ID) return;
     const parts = ctx.message.text.trim().split(/\s+/);
@@ -392,11 +428,12 @@ bot.command('credit', (ctx) => {
         return ctx.reply('አጠቃቀም፦ /credit <userId> <amount>');
     }
 
-    const targetUser = getUser(targetId);
-    targetUser.mainWallet = Number((targetUser.mainWallet + amount).toFixed(2));
-    saveUsers();
-
-    ctx.reply(`✅ ለ User ${targetId} ${amount.toFixed(2)} ብር ወደ Main Wallet ገብቷል።`);
+    const updatedUser = creditUserWallet(targetId, amount);
+    ctx.reply(
+        `✅ ለ User <code>${targetId}</code> <b>+${amount.toFixed(2)} ብር</b> ወደ Main Wallet በራስ-ሰር ገብቷል።\n` +
+        `🏦 አዲስ Main Wallet፦ <b>${updatedUser.mainWallet.toFixed(2)} ብር</b>`,
+        { parse_mode: 'HTML' }
+    );
     ctx.telegram.sendMessage(
         targetId,
         `🎉 የ Deposit ክፍያህ ተረጋግጧል! <b>+${amount.toFixed(2)} ብር</b> ወደ Main Wallet ገብቷል።`,
@@ -404,8 +441,13 @@ bot.command('credit', (ctx) => {
     ).catch(() => {});
 });
 
+// --- Withdraw ፍሰት፦ ዘዴ መምረጥ እና ስም + ቁጥር/አካውንት መጠየቅ ---
 bot.hears('💸 Withdraw', (ctx) => {
     const user = getUser(ctx.from.id);
+    user.pendingDepositMethod = null;
+    user.pendingWithdrawMethod = null;
+    saveUsers();
+
     if (user.mainWallet < MIN_WITHDRAW) {
         return ctx.reply(
             `⚠️ ዝቅተኛው የማውጣት መጠን (Main Wallet) <b>${MIN_WITHDRAW} ብር</b> ነው።\n` +
@@ -414,12 +456,41 @@ bot.hears('💸 Withdraw', (ctx) => {
         );
     }
 
-    const amount = user.mainWallet;
-    user.mainWallet = 0;
-    saveUsers();
     ctx.reply(
-        `✅ የ <b>${amount.toFixed(2)} ብር</b> የማውጣት ጥያቄ ተመዝግቧል።\n` +
-        `🏦 አዲስ Main Wallet: <b>0.00 ብር</b>`,
+        `💸 ገንዘቡን ለመቀበል የምትፈልገውን መንገድ ምረጥ፦\n` +
+        `🏦 የሚወጣው Main Wallet፦ <b>${user.mainWallet.toFixed(2)} ብር</b>`,
+        {
+            parse_mode: 'HTML',
+            ...Markup.inlineKeyboard([
+                [
+                    Markup.button.callback('📱 Telebirr', 'withdraw_Telebirr'),
+                    Markup.button.callback('🏦 CBE', 'withdraw_CBE')
+                ]
+            ])
+        }
+    );
+});
+
+bot.action(/^withdraw_(Telebirr|CBE)$/, async (ctx) => {
+    const method = ctx.match[1];
+    const user = getUser(ctx.from.id);
+
+    if (user.mainWallet < MIN_WITHDRAW) {
+        await ctx.answerCbQuery('በቂ Main Wallet የለም', { show_alert: true });
+        return;
+    }
+
+    user.pendingWithdrawMethod = method;
+    saveUsers();
+
+    await ctx.answerCbQuery(`${method} ተመርጧል`);
+    const promptDetail =
+        method === 'Telebirr'
+            ? 'የ <b>Telebirr ስምህን</b> እና <b>ስልክ ቁጥርህን</b> ጻፍ (ለምሳሌ፦ <code>Abebe Kebede - 0911223344</code>)፦'
+            : 'የ <b>CBE ስምህን</b> እና <b>አካውንት ቁጥርህን</b> ጻፍ (ለምሳሌ፦ <code>Abebe Kebede - 1000123456789</code>)፦';
+
+    await ctx.reply(
+        `✅ <b>${method} Withdraw</b>\n${promptDetail}`,
         { parse_mode: 'HTML' }
     );
 });
@@ -439,16 +510,84 @@ bot.hears(['📖 How To Play', 'ℹ️ መረጃ (Info)'], (ctx) => {
         `📖 <b>የአጫዋወት መመሪያ (Trust Bingo)</b>\n\n` +
         `1️⃣ <b>Play</b> በመጫን Stake (10 / 20 / 50 ብር) ምረጥ።\n` +
         `2️⃣ ካርቴላ ስትይዝ ደራሽ (80% pool) በራስ-ሰር ይጨምራል።\n` +
-        `3️⃣ ክፍያ ወደ <b>Biniyam (0912698277 / 1000161123726)</b> ፈጽመህ ስክሪንሾት ወይም SMS ላክ፤ የተደጋገመ ወይም ለሌላ ሰው የተላከ SMS <b>ስህተት (Wrong)</b> ይላል።`,
+        `3️⃣ ክፍያ ወደ <b>Biniyam (0912698277 / 1000161123726)</b> ፈጽመህ ስክሪንሾት ወይም SMS ላክ፤ Withdraw ስትጠይቅ የ Telebirr/CBE ስም እና ቁጥር/አካውንት ጻፍ።`,
         { parse_mode: 'HTML' }
     );
 });
 
-// --- SMS ኮፒ መቀበል፣ ማረጋገጥ እና ወደ Admin መላክ ---
+// --- ጽሁፍ መቀበል (Admin Credit Amount / Withdraw Details / Deposit SMS) ---
 bot.on('text', async (ctx, next) => {
-    const user = getUser(ctx.from.id);
+    const senderId = String(ctx.from.id);
     const rawText = ctx.message.text.trim();
 
+    // 1. Admin በ "Credit User" ቁልፍ ከመረጠ በኋላ የብር መጠን ሲጽፍ -> በራስ-ሰር ባላንስ ይጨምራል
+    if (ADMIN_ID && senderId === ADMIN_ID && adminPendingCreditTarget) {
+        const amount = Number(rawText);
+        const targetId = adminPendingCreditTarget;
+        adminPendingCreditTarget = null;
+
+        if (!Number.isFinite(amount) || amount <= 0) {
+            return ctx.reply('⚠️ እባክህ ትክክለኛ የብር መጠን በቁጥር አስገባ (ለምሳሌ፦ 100)።');
+        }
+
+        const updatedUser = creditUserWallet(targetId, amount);
+        await ctx.reply(
+            `✅ ለ User <code>${targetId}</code> <b>+${amount.toFixed(2)} ብር</b> ወደ Main Wallet በራስ-ሰር ተጨምሯል!\n` +
+            `🏦 አዲስ Main Wallet፦ <b>${updatedUser.mainWallet.toFixed(2)} ብር</b>`,
+            { parse_mode: 'HTML' }
+        );
+        ctx.telegram.sendMessage(
+            targetId,
+            `🎉 የ Deposit ክፍያህ ተረጋግጧል! <b>+${amount.toFixed(2)} ብር</b> ወደ Main Wallet ገብቷል።`,
+            { parse_mode: 'HTML' }
+        ).catch(() => {});
+        return;
+    }
+
+    const user = getUser(senderId);
+
+    // 2. ተጫዋቹ የ Withdraw Telebirr/CBE ስም እና ቁጥር/አካውንት ሲልክ -> ባላንስ ይቀነሳል & ለ Admin ይላካል
+    if (user.pendingWithdrawMethod) {
+        if (rawText.length < 4) {
+            return ctx.reply('⚠️ እባክህ ስምህን እና የ Telebirr ስልክ ወይም የ CBE አካውንት ቁጥር በግልጽ ጻፍ።');
+        }
+        if (user.mainWallet < MIN_WITHDRAW) {
+            user.pendingWithdrawMethod = null;
+            saveUsers();
+            return ctx.reply(`⚠️ በቂ Main Wallet የለም (ዝቅተኛው ${MIN_WITHDRAW} ብር ነው)።`);
+        }
+
+        const method = user.pendingWithdrawMethod;
+        const withdrawAmount = Number(user.mainWallet.toFixed(2));
+        user.mainWallet = 0; // ባላንሱን ወደ 0 በመቀነስ (minimize/deduct) ማስቀመጥ
+        user.pendingWithdrawMethod = null;
+        saveUsers();
+
+        const usernameTag = ctx.from.username ? `@${ctx.from.username}` : 'No username';
+
+        await ctx.reply(
+            `✅ የ <b>${withdrawAmount.toFixed(2)} ብር</b> የ Withdraw ጥያቄህ በ <b>${method}</b> ተመዝግቧል!\n` +
+            `📌 የተላከ መረጃ፦ <code>${rawText}</code>\n` +
+            `🏦 ቀሪ Main Wallet፦ <b>0.00 ብር</b>`,
+            { parse_mode: 'HTML' }
+        );
+
+        await notifyAdmin((adminId) =>
+            ctx.telegram.sendMessage(
+                adminId,
+                `💸 <b>አዲስ Withdraw ጥያቄ (${method})</b>\n\n` +
+                `👤 User ID: <code>${ctx.from.id}</code>\n` +
+                `📛 Name: ${ctx.from.first_name || 'User'} (${usernameTag})\n` +
+                `💵 የሚወጣ መጠን: <b>${withdrawAmount.toFixed(2)} ብር</b>\n` +
+                `🏦 የመቀበያ ዝርዝር (${method}): <code>${rawText}</code>\n\n` +
+                `ክፍያውን ከላክክ በኋላ ማረጋገጥ ትችላለህ።`,
+                { parse_mode: 'HTML' }
+            )
+        );
+        return;
+    }
+
+    // 3. Deposit SMS ፍሰት
     if (!user.pendingDepositMethod) return next();
 
     const method = user.pendingDepositMethod;
@@ -479,7 +618,7 @@ bot.on('text', async (ctx, next) => {
     }
 
     usedProofs.sms[smsHash] = {
-        userId: String(ctx.from.id),
+        userId: senderId,
         method,
         usedAt: new Date().toISOString()
     };
@@ -488,137 +627,4 @@ bot.on('text', async (ctx, next) => {
     user.pendingDepositMethod = null;
     saveUsers();
 
-    const usernameTag = ctx.from.username ? `@${ctx.from.username}` : 'No username';
-
-    await ctx.reply(
-        `📩 የ <b>${method}</b> SMS ማስረጃህ ተመዝግቧል! ለማረጋገጫ በተጠባባሽ (Pending) ተይዟል።`,
-        { parse_mode: 'HTML' }
-    );
-
-    await notifyAdmin((adminId) =>
-        ctx.telegram.sendMessage(
-            adminId,
-            `🔔 አዲስ Deposit SMS (${method})\n` +
-            `👤 User ID: ${ctx.from.id}\n` +
-            `📛 Name: ${ctx.from.first_name || 'User'} (${usernameTag})\n` +
-            `💬 SMS:\n${rawText}\n\n` +
-            `ባላንስ ለመጨመር፦ /credit ${ctx.from.id} <amount>`
-        )
-    );
-});
-
-// --- Mini App REST API ---
-app.get('/api/state', (req, res) => {
-    const userId = String(req.query.userId || 'guest');
-    const stake = [10, 20, 50].includes(Number(req.query.stake)) ? Number(req.query.stake) : 10;
-    const user = getUser(userId);
-    res.json({
-        userId,
-        mainWallet: user.mainWallet,
-        playWallet: user.playWallet,
-        balance: totalBalance(user),
-        cartelaCount: CARTELA_COUNT,
-        room: getRoomSummary(stake)
-    });
-});
-
-app.post('/api/take-cartela', (req, res) => {
-    const { userId = 'guest', stake = 10, cartelaId } = req.body || {};
-    const s = [10, 20, 50].includes(Number(stake)) ? Number(stake) : 10;
-    const id = parseInt(cartelaId, 10);
-
-    if (isNaN(id) || id < 1 || id > CARTELA_COUNT) {
-        return res.status(400).json({ error: 'Invalid cartela ID (1-300)' });
-    }
-
-    const room = rooms[s];
-    const uid = String(userId);
-
-    if (room.takenCartelas[id]) {
-        if (room.takenCartelas[id] === uid) {
-            return res.json({
-                balance: totalBalance(getUser(uid)),
-                room: getRoomSummary(s)
-            });
-        }
-        return res.status(409).json({ error: `ካርቴላ #${id} ቀድሞ ተይዟል። ሌላ ምረጥ።` });
-    }
-
-    const user = getUser(uid);
-    if (!spendFromWallets(user, s)) {
-        return res.status(400).json({
-            error: `በቂ ባላንስ የለም። የሚያስፈልገው፦ ${s} ብር፣ ያለህ፦ ${totalBalance(user)} ብር።`
-        });
-    }
-
-    room.takenCartelas[id] = uid;
-
-    res.json({
-        balance: totalBalance(user),
-        mainWallet: user.mainWallet,
-        playWallet: user.playWallet,
-        room: getRoomSummary(s)
-    });
-});
-
-app.post('/api/start-game', (req, res) => {
-    const { userId = 'guest', stake = 10, cartelaIds = [] } = req.body || {};
-    const s = [10, 20, 50].includes(Number(stake)) ? Number(stake) : 10;
-    const uid = String(userId);
-    const room = rooms[s];
-
-    const myIds = (Array.isArray(cartelaIds) ? cartelaIds : [])
-        .map((n) => parseInt(n, 10))
-        .filter((n) => room.takenCartelas[n] === uid);
-
-    if (myIds.length === 0) {
-        return res.status(400).json({ error: 'መጀመሪያ ቢያንስ አንድ ካርቴላ ያዝ (ተጫን)።' });
-    }
-
-    const summary = getRoomSummary(s);
-    const derash = summary.derash;
-
-    const pool = Array.from({ length: 75 }, (_, i) => i + 1);
-    for (let i = pool.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [pool[i], pool[j]] = [pool[j], pool[i]];
-    }
-
-    rooms[s] = createRoom(s);
-
-    res.json({
-        stake: s,
-        takenCount: summary.takenCount,
-        totalPool: summary.totalPool,
-        derash,
-        drawOrder: pool,
-        boards: myIds.map((id) => ({ id, card: cartelas[id] }))
-    });
-});
-
-app.post('/api/claim-win', (req, res) => {
-    const { userId = 'guest', reward = 0 } = req.body || {};
-    const prize = Number(reward);
-    if (!Number.isFinite(prize) || prize <= 0 || prize > 100000) {
-        return res.status(400).json({ error: 'Invalid reward amount' });
-    }
-    const user = getUser(String(userId));
-    user.mainWallet = Number((user.mainWallet + prize).toFixed(2));
-    saveUsers();
-    res.json({
-        balance: totalBalance(user),
-        mainWallet: user.mainWallet,
-        playWallet: user.playWallet
-    });
-});
-
-app.use(express.static(path.join(__dirname, 'public')));
-
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Trust Bingo Server + Mini App listening on port ${PORT}`);
-});
-
-bot.launch();
-console.log('Trust Bingo Bot is running... 🚀');
-                                    
+    const usernameTag = ctx.from.username ? `@${ctx.from.username}` : 'No usernam

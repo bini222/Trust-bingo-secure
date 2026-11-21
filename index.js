@@ -389,8 +389,7 @@ bot.on('photo', async (ctx) => {
 
     if (usedProofs.photos[uniqueKey]) {
         return ctx.reply(
-            '❌ <b>ስህተት / Wrong!</b>\n' +
-            'ይህ ስክሪንሾት ቀድሞ ተልኳል! ተመሳሳይ ስክሪንሾት እንደገና መላክ ስህተት ነው።',
+            '❌ <b>ስህተት / Wrong!</b>\nይህ ስክሪንሾት ቀድሞ ተልኳል! ተመሳሳይ ስክሪንሾት እንደገና መላክ ስህተት ነው።',
             { parse_mode: 'HTML' }
         );
     }
@@ -409,8 +408,7 @@ bot.on('photo', async (ctx) => {
     const senderInfo = formatSenderTag(ctx.from);
 
     await ctx.reply(
-        '📸 የ <b>' + method + '</b> ስክሪንሾትህ ተቀብለናል። አስተዳዳሪው በፎቶው ላይ ስሙ <b>Biniyam</b> እና ቁጥሩ <b>0912698277 / 1000161123726</b> መሆኑን ካረጋገጠ በኋላ ባላንስ ይጨምራል።',
-        { parse_mode: 'HTML' }
+        '📸 የ ' + method + ' ስክሪንሾትህ ተቀብለናል። አስተዳዳሪው ካረጋገጠ በኋላ ባላንስ ይጨምራል።'
     );
 
     await notifyAdmin((adminId) =>
@@ -418,8 +416,7 @@ bot.on('photo', async (ctx) => {
             caption:
                 '🔔 አዲስ Deposit Screenshot (' + method + ')\n' +
                 '👤 User ID: ' + ctx.from.id + '\n' +
-                '📛 Name: ' + senderInfo + caption + '\n' +
-                '⚠️ በስክሪንሾቱ ላይ Biniyam (0912698277 / 1000161123726) መሆኑን አረጋግጥ!',
+                '📛 Name: ' + senderInfo + caption,
             ...Markup.inlineKeyboard([
                 [Markup.button.callback('💳 Credit User (' + ctx.from.id + ')', 'admin_credit_' + ctx.from.id)]
             ])
@@ -439,14 +436,11 @@ bot.command('credit', (ctx) => {
 
     const updatedUser = creditUserWallet(targetId, amount);
     ctx.reply(
-        '✅ ለ User <code>' + targetId + '</code> <b>+' + amount.toFixed(2) + ' ብር</b> ወደ Main Wallet በራስ-ሰር ገብቷል።\n' +
-        '🏦 አዲስ Main Wallet፦ <b>' + updatedUser.mainWallet.toFixed(2) + ' ብር</b>',
-        { parse_mode: 'HTML' }
+        '✅ ለ User ' + targetId + ' +' + amount.toFixed(2) + ' ብር ወደ Main Wallet ተጨምሯል። አዲስ Main Wallet፦ ' + updatedUser.mainWallet.toFixed(2) + ' ብር'
     );
     ctx.telegram.sendMessage(
         targetId,
-        '🎉 የ Deposit ክፍያህ ተረጋግጧል! <b>+' + amount.toFixed(2) + ' ብር</b> ወደ Main Wallet ገብቷል።',
-        { parse_mode: 'HTML' }
+        '🎉 የ Deposit ክፍያህ ተረጋግጧል! +' + amount.toFixed(2) + ' ብር ወደ Main Wallet ገብቷል።'
     ).catch(() => {});
 });
 
@@ -458,24 +452,18 @@ bot.hears('💸 Withdraw', (ctx) => {
 
     if (user.mainWallet < MIN_WITHDRAW) {
         return ctx.reply(
-            '⚠️ ዝቅተኛው የማውጣት መጠን (Main Wallet) <b>' + MIN_WITHDRAW + ' ብር</b> ነው።\n' +
-            '🏦 Main Wallet: <b>' + user.mainWallet.toFixed(2) + ' ብር</b>',
-            { parse_mode: 'HTML' }
+            '⚠️ ዝቅተኛው የማውጣት መጠን (Main Wallet) ' + MIN_WITHDRAW + ' ብር ነው። Main Wallet: ' + user.mainWallet.toFixed(2) + ' ብር'
         );
     }
 
     ctx.reply(
-        '💸 ገንዘቡን ለመቀበል የምትፈልገውን መንገድ ምረጥ፦\n' +
-        '🏦 የሚወጣው Main Wallet፦ <b>' + user.mainWallet.toFixed(2) + ' ብር</b>',
-        {
-            parse_mode: 'HTML',
-            ...Markup.inlineKeyboard([
-                [
-                    Markup.button.callback('📱 Telebirr', 'withdraw_Telebirr'),
-                    Markup.button.callback('🏦 CBE', 'withdraw_CBE')
-                ]
-            ])
-        }
+        '💸 ገንዘቡን ለመቀበል የምትፈልገውን መንገድ ምረጥ፦\n🏦 የሚወጣው Main Wallet፦ ' + user.mainWallet.toFixed(2) + ' ብር',
+        Markup.inlineKeyboard([
+            [
+                Markup.button.callback('📱 Telebirr', 'withdraw_Telebirr'),
+                Markup.button.callback('🏦 CBE', 'withdraw_CBE')
+            ]
+        ])
     );
 });
 
@@ -494,32 +482,24 @@ bot.action(/^withdraw_(Telebirr|CBE)$/, async (ctx) => {
     await ctx.answerCbQuery(method + ' ተመርጧል');
     const promptDetail =
         method === 'Telebirr'
-            ? 'የ <b>Telebirr ስምህን</b> እና <b>ስልክ ቁጥርህን</b> ጻፍ (ለምሳሌ፦ <code>Abebe Kebede - 0911223344</code>)፦'
-            : 'የ <b>CBE ስምህን</b> እና <b>አካውንት ቁጥርህን</b> ጻፍ (ለምሳሌ፦ <code>Abebe Kebede - 1000123456789</code>)፦';
+            ? 'የ Telebirr ስምህን እና ስልክ ቁጥርህን ጻፍ (ለምሳሌ፦ Abebe Kebede - 0911223344)፦'
+            : 'የ CBE ስምህን እና አካውንት ቁጥርህን ጻፍ (ለምሳሌ፦ Abebe Kebede - 1000123456789)፦';
 
-    await ctx.reply(
-        '✅ <b>' + method + ' Withdraw</b>\n' + promptDetail,
-        { parse_mode: 'HTML' }
-    );
+    await ctx.reply('✅ ' + method + ' Withdraw\n' + promptDetail);
 });
 
 bot.hears('🎁 Invite', (ctx) => {
     const botUsername = ctx.botInfo && ctx.botInfo.username ? ctx.botInfo.username : 'Trusttbingobot';
     const refLink = 'https://t.me/' + botUsername + '?start=ref_' + ctx.from.id;
-    ctx.reply(
-        '🎁 <b>ጓደኞችህን ጋብዝ!</b>\n\n' +
-        'የመጋበዣ ሊንክህ፦\n<code>' + refLink + '</code>',
-        { parse_mode: 'HTML' }
-    );
+    ctx.reply('🎁 ጓደኞችህን ጋብዝ!\n\n' + refLink);
 });
 
 bot.hears(['📖 How To Play', 'ℹ️ መረጃ (Info)'], (ctx) => {
     ctx.reply(
-        '📖 <b>የአጫዋወት መመሪያ (Trust Bingo)</b>\n\n' +
-        '1️⃣ <b>Play</b> በመጫን Stake (10 / 20 / 50 ብር) ምረጥ።\n' +
+        '📖 የአጫዋወት መመሪያ (Trust Bingo)\n\n' +
+        '1️⃣ Play በመጫን Stake (10 / 20 / 50 ብር) ምረጥ።\n' +
         '2️⃣ ካርቴላ ስትይዝ ደራሽ (80% pool) በራስ-ሰር ይጨምራል።\n' +
-        '3️⃣ ክፍያ ወደ <b>Biniyam (0912698277 / 1000161123726)</b> ፈጽመህ ስክሪንሾት ወይም SMS ላክ፤ Withdraw ስትጠይቅ የ Telebirr/CBE ስም እና ቁጥር/አካውንት ጻፍ።',
-        { parse_mode: 'HTML' }
+        '3️⃣ ክፍያ ወደ Biniyam (0912698277 / 1000161123726) ፈጽመህ ስክሪንሾት ወይም SMS ላክ፤ Withdraw ስትጠይቅ ስም እና ቁጥር/አካውንት ጻፍ።'
     );
 });
 
@@ -538,14 +518,11 @@ bot.on('text', async (ctx, next) => {
 
         const updatedUser = creditUserWallet(targetId, amount);
         await ctx.reply(
-            '✅ ለ User <code>' + targetId + '</code> <b>+' + amount.toFixed(2) + ' ብር</b> ወደ Main Wallet በራስ-ሰር ተጨምሯል!\n' +
-            '🏦 አዲስ Main Wallet፦ <b>' + updatedUser.mainWallet.toFixed(2) + ' ብር</b>',
-            { parse_mode: 'HTML' }
+            '✅ ለ User ' + targetId + ' +' + amount.toFixed(2) + ' ብር ወደ Main Wallet ተጨምሯል። አዲስ Main Wallet፦ ' + updatedUser.mainWallet.toFixed(2) + ' ብር'
         );
         ctx.telegram.sendMessage(
             targetId,
-            '🎉 የ Deposit ክፍያህ ተረጋግጧል! <b>+' + amount.toFixed(2) + ' ብር</b> ወደ Main Wallet ገብቷል።',
-            { parse_mode: 'HTML' }
+            '🎉 የ Deposit ክፍያህ ተረጋግጧል! +' + amount.toFixed(2) + ' ብር ወደ Main Wallet ገብቷል።'
         ).catch(() => {});
         return;
     }
@@ -571,22 +548,19 @@ bot.on('text', async (ctx, next) => {
         const senderInfo = formatSenderTag(ctx.from);
 
         await ctx.reply(
-            '✅ የ <b>' + withdrawAmount.toFixed(2) + ' ብር</b> የ Withdraw ጥያቄህ በ <b>' + method + '</b> ተመዝግቧል!\n' +
-            '📌 የተላከ መረጃ፦ <code>' + rawText + '</code>\n' +
-            '🏦 ቀሪ Main Wallet፦ <b>0.00 ብር</b>',
-            { parse_mode: 'HTML' }
+            '✅ የ ' + withdrawAmount.toFixed(2) + ' ብር የ Withdraw ጥያቄህ በ ' + method + ' ተመዝግቧል!\n' +
+            '📌 መረጃ፦ ' + rawText + '\n' +
+            '🏦 ቀሪ Main Wallet፦ 0.00 ብር'
         );
 
         await notifyAdmin((adminId) =>
             ctx.telegram.sendMessage(
                 adminId,
-                '💸 <b>አዲስ Withdraw ጥያቄ (' + method + ')</b>\n\n' +
-                '👤 User ID: <code>' + ctx.from.id + '</code>\n' +
+                '💸 አዲስ Withdraw ጥያቄ (' + method + ')\n\n' +
+                '👤 User ID: ' + ctx.from.id + '\n' +
                 '📛 Name: ' + senderInfo + '\n' +
-                '💵 የሚወጣ መጠን: <b>' + withdrawAmount.toFixed(2) + ' ብር</b>\n' +
-                '🏦 የመቀበያ ዝርዝር (' + method + '): <code>' + rawText + '</code>\n\n' +
-                'ክፍያውን ከላክክ በኋላ ማረጋገጥ ትችላለህ።',
-                { parse_mode: 'HTML' }
+                '💵 የሚወጣ መጠን: ' + withdrawAmount.toFixed(2) + ' ብር\n' +
+                '🏦 የመቀበያ ዝርዝር (' + method + '): ' + rawText
             )
         );
         return;
@@ -598,26 +572,20 @@ bot.on('text', async (ctx, next) => {
 
     if (!looksLikePaymentSms(rawText)) {
         return ctx.reply(
-            '❌ <b>ስህተት / Wrong!</b>\n' +
-            'እባክህ ወደ <b>Biniyam (0912698277 / 1000161123726)</b> የከፈልክበትን <b>ትክክለኛ የ SMS መልዕክት</b> ወይም <b>ስክሪንሾት (Photo)</b> ላክ።',
-            { parse_mode: 'HTML' }
+            '❌ ስህተት / Wrong!\nእባክህ ወደ Biniyam (0912698277 / 1000161123726) የከፈልክበትን ትክክለኛ የ SMS መልዕክት ወይም ስክሪንሾት (Photo) ላክ።'
         );
     }
 
     if (!smsSentToOwner(rawText)) {
         return ctx.reply(
-            '❌ <b>ስህተት / Wrong!</b>\n' +
-            'ይህ የክፍያ SMS ወደ <b>Biniyam (0912698277 / 1000161123726)</b> የተላከ አይደለም! ለሌላ ሰው የተላከ ማስረጃ ተቀባይነት የለውም።',
-            { parse_mode: 'HTML' }
+            '❌ ስህተት / Wrong!\nይህ የክፍያ SMS ወደ Biniyam (0912698277 / 1000161123726) የተላከ አይደለም! ለሌላ ሰው የተላከ ማስረጃ ተቀባይነት የለውም።'
         );
     }
 
     const smsHash = hashText(rawText);
     if (usedProofs.sms[smsHash]) {
         return ctx.reply(
-            '❌ <b>ስህተት / Wrong!</b>\n' +
-            'ይህ የ SMS መልዕክት ቀድሞ ተልኳል! ተመሳሳይ SMS ደጋግሞ መላክ ስህተት ነው።',
-            { parse_mode: 'HTML' }
+            '❌ ስህተት / Wrong!\nይህ የ SMS መልዕክት ቀድሞ ተልኳል! ተመሳሳይ SMS ደጋግሞ መላክ ስህተት ነው።'
         );
     }
 
@@ -633,5 +601,43 @@ bot.on('text', async (ctx, next) => {
 
     const senderInfo = formatSenderTag(ctx.from);
 
-    await ctx.reply(
-        '📩 የ <b>' + m    
+    await ctx.reply('📩 የ ' + method + ' SMS ማስረጃህ ተመዝግቧል! ለማረጋገጫ በተጠባባሽ (Pending) ተይዟል።');
+
+    await notifyAdmin((adminId) =>
+        ctx.telegram.sendMessage(
+            adminId,
+            '🔔 አዲስ Deposit SMS (' + method + ')\n' +
+            '👤 User ID: ' + ctx.from.id + '\n' +
+            '📛 Name: ' + senderInfo + '\n' +
+            '💬 SMS:\n' + rawText,
+            Markup.inlineKeyboard([
+                [Markup.button.callback('💳 Credit User (' + ctx.from.id + ')', 'admin_credit_' + ctx.from.id)]
+            ])
+        )
+    );
+});
+
+app.get('/api/state', (req, res) => {
+    const userId = String(req.query.userId || 'guest');
+    const stake = [10, 20, 50].includes(Number(req.query.stake)) ? Number(req.query.stake) : 10;
+    const user = getUser(userId);
+    res.json({
+        userId,
+        mainWallet: user.mainWallet,
+        playWallet: user.playWallet,
+        balance: totalBalance(user),
+        cartelaCount: CARTELA_COUNT,
+        room: getRoomSummary(stake)
+    });
+});
+
+app.post('/api/take-cartela', (req, res) => {
+    const { userId = 'guest', stake = 10, cartelaId } = req.body || {};
+    const s = [10, 20, 50].includes(Number(stake)) ? Number(stake) : 10;
+    const id = parseInt(cartelaId, 10);
+
+    if (isNaN(id) || id < 1 || id > CARTELA_COUNT) {
+        return res.status(400).json({ error: 'Invalid cartela ID (1-300)' });
+    }
+
+  

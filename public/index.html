@@ -47,6 +47,17 @@
       cursor: pointer;
     }
     .stake-btn.active { background: #5c1b8a; color: #fff; }
+    .preview-bar {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #f4eefc;
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 700;
+      color: #4b1473;
+    }
     .cartela-grid {
       display: grid;
       grid-template-columns: repeat(10, 1fr);
@@ -76,6 +87,21 @@
       font-weight: 800;
       cursor: pointer;
     }
+    .stats-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .stat-box {
+      background: #fff;
+      border-radius: 12px;
+      padding: 10px 8px;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+    .stat-label { font-size: 11px; color: #6b7280; font-weight: 700; }
+    .stat-val { font-size: 15px; font-weight: 900; color: #5c1b8a; margin-top: 2px; }
     .call-banner {
       background: #4b1473;
       color: #fff;
@@ -180,6 +206,10 @@
           <button class="stake-btn" data-stake="20">20 ብር</button>
           <button class="stake-btn" data-stake="50">50 ብር</button>
         </div>
+        <div class="preview-bar">
+          <span id="previewStake">ወጪ፦ 10 ብር</span>
+          <span id="previewDerash">ደራሽ (Derash)፦ 40 ብር</span>
+        </div>
       </div>
 
       <div class="card-box">
@@ -195,10 +225,25 @@
 
     <!-- Game Screen -->
     <div id="gameView" class="hidden">
+      <div class="stats-strip">
+        <div class="stat-box">
+          <div class="stat-label">STAKE</div>
+          <div class="stat-val" id="liveStake">10 ብር</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">DERASH (ደራሽ)</div>
+          <div class="stat-val" id="liveDerash" style="color:#d97706;">40 ብር</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">CALLED</div>
+          <div class="stat-val" id="calledInfo">0 / 75</div>
+        </div>
+      </div>
+
       <div class="call-banner">
         <div>
           <div style="font-size:12px; opacity:0.85;">CURRENT CALL</div>
-          <div id="calledInfo" style="font-size:14px; font-weight:700;">Called: 0 / 75</div>
+          <div style="font-size:14px; font-weight:700;">የወጣ ቁጥር</div>
         </div>
         <div class="call-num" id="currentNum">-</div>
       </div>
@@ -247,6 +292,14 @@
     let selectedCartelas = new Set();
     let drawTimer = null;
 
+    function updatePreview() {
+      const count = selectedCartelas.size || 1;
+      const cost = selectedStake * count;
+      const derash = cost * 4;
+      document.getElementById('previewStake').textContent = `ወጪ፦ ${cost} ብር`;
+      document.getElementById('previewDerash').textContent = `ደራሽ (Derash)፦ ${derash} ብር`;
+    }
+
     const gridEl = document.getElementById('cartelaGrid');
     for (let i = 1; i <= 300; i++) {
       const btn = document.createElement('button');
@@ -265,6 +318,7 @@
           btn.classList.add('selected');
         }
         document.getElementById('selectedCount').textContent = `${selectedCartelas.size} ተመርጧል`;
+        updatePreview();
       };
       gridEl.appendChild(btn);
     }
@@ -274,8 +328,11 @@
         document.querySelectorAll('.stake-btn').forEach((b) => b.classList.remove('active'));
         btn.classList.add('active');
         selectedStake = Number(btn.dataset.stake);
+        updatePreview();
       };
     });
+
+    updatePreview();
 
     async function refreshState() {
       const res = await fetch(`/api/state?userId=${encodeURIComponent(userId)}`);
@@ -338,6 +395,11 @@
       if (!res.ok) return alert(data.error || 'ጨዋታ መጀመር አልተቻለም');
 
       await refreshState();
+      document.getElementById('liveStake').textContent = `${data.totalCost} ብር`;
+      document.getElementById('liveDerash').textContent = `${data.derash} ብር`;
+      document.getElementById('calledInfo').textContent = `0 / 75`;
+      document.getElementById('currentNum').textContent = `-`;
+
       document.getElementById('lobbyView').classList.add('hidden');
       document.getElementById('walletView').classList.add('hidden');
       document.getElementById('gameView').classList.remove('hidden');
@@ -354,7 +416,7 @@
         const num = data.drawOrder[idx++];
         drawnSet.add(num);
         document.getElementById('currentNum').textContent = num;
-        document.getElementById('calledInfo').textContent = `Called: ${idx} / 75`;
+        document.getElementById('calledInfo').textContent = `${idx} / 75`;
         boardsContainer.innerHTML = data.boards.map((b) => renderBoardHtml(b, drawnSet)).join('');
 
         const winnerBoard = data.boards.find((b) => checkBoardWin(b.card, drawnSet));
@@ -363,10 +425,10 @@
           fetch('/api/claim-win', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId, reward: data.reward })
+            body: JSON.stringify({ userId, reward: data.derash })
           }).then(() => refreshState());
 
-          document.getElementById('winText').textContent = `Board #${winnerBoard.id} አሸንፏል! (+${data.reward} ብር)`;
+          document.getElementById('winText').textContent = `Board #${winnerBoard.id} አሸንፏል! ደራሽ፦ +${data.derash} ብር`;
           document.getElementById('winBoardBox').innerHTML = renderBoardHtml(winnerBoard, drawnSet);
           document.getElementById('winModal').classList.add('show');
         }
@@ -409,4 +471,5 @@
     refreshState();
   </script>
 </body>
-</html>
+  </html>
+  

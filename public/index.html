@@ -7,182 +7,267 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
-    body { margin: 0; background: #100c20; color: #f5f2ff; padding-bottom: 78px; }
+    body { margin: 0; background: #dfd3ee; color: #1e1830; padding-bottom: 72px; }
     .topbar {
-      background: linear-gradient(90deg, #4c1475, #7e22ce, #c026d3);
-      padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;
-      font-weight: 800; box-shadow: 0 4px 18px rgba(0,0,0,0.45);
+      background: #5c1b8a; color: #fff; padding: 11px 14px;
+      display: flex; justify-content: space-between; align-items: center; font-weight: 800;
     }
-    .top-right { display: flex; gap: 8px; align-items: center; }
     .pill {
-      background: rgba(255,255,255,0.16); padding: 6px 12px;
+      background: rgba(255,255,255,0.18); padding: 5px 11px;
       border-radius: 999px; font-size: 12px; font-weight: 800;
     }
-    .icon-btn {
-      background: rgba(255,255,255,0.16); border: none; color: #fff;
-      padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; cursor: pointer;
+    .container { padding: 10px; max-width: 560px; margin: 0 auto; }
+
+    /* Lobby View */
+    .lobby-card {
+      background: #efe8f8; border: 1px solid #c9b7e3;
+      border-radius: 14px; padding: 12px; margin-bottom: 12px;
     }
-    .container { padding: 14px; max-width: 540px; margin: 0 auto; }
-    .card {
-      background: #1c1633; border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 16px; padding: 14px; margin-bottom: 14px;
-    }
-    .section-head { display: flex; justify-content: space-between; align-items: center; font-weight: 800; margin-bottom: 10px; }
+    .lobby-head { display: flex; justify-content: space-between; align-items: center; font-weight: 800; margin-bottom: 8px; }
     .stakes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .stake-btn {
-      padding: 12px 8px; border-radius: 12px; border: 1px solid #6d28d9;
-      background: #281f47; color: #fff; font-weight: 800; cursor: pointer;
+      padding: 10px 6px; border-radius: 10px; border: 2px solid #5c1b8a;
+      background: #fff; color: #1e1830; font-weight: 800; cursor: pointer;
     }
-    .stake-btn.active { background: #f59e0b; border-color: #f59e0b; color: #100c20; }
-    .meta-row { display: flex; justify-content: space-between; margin-top: 10px; font-size: 13px; font-weight: 700; color: #ddd6fe; }
-    .timer-banner {
-      background: linear-gradient(90deg, #2a134e, #431870);
-      border: 1px solid #a855f7; border-radius: 14px; padding: 10px 14px;
-      display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+    .stake-btn.active { background: #5c1b8a; color: #fff; }
+    .countdown-box {
+      display: flex; justify-content: space-between; align-items: center;
+      background: #5c1b8a; color: #fff; border-radius: 12px; padding: 10px 14px; margin-bottom: 10px;
+      font-weight: 800;
     }
-    .timer-num { font-size: 22px; font-weight: 900; color: #fbbf24; }
     .grid-300 {
       display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px;
-      max-height: 225px; overflow-y: auto; padding: 6px; background: #140f26; border-radius: 12px;
+      max-height: 225px; overflow-y: auto; padding: 6px; background: #ddd0ef; border-radius: 10px;
     }
     .num-btn {
-      padding: 7px 2px; border: 1px solid #352863; border-radius: 7px;
-      background: #241b42; color: #ede9fe; font-size: 11px; font-weight: 700; cursor: pointer;
+      padding: 7px 2px; border: 1px solid #b9a6d6; border-radius: 6px;
+      background: #faf6ff; color: #1e1830; font-size: 11px; font-weight: 700; cursor: pointer;
     }
     .num-btn.mine { background: #16a34a; color: #fff; border-color: #16a34a; }
-    .num-btn.ai { background: #7c3aed; color: #fff; border-color: #7c3aed; cursor: not-allowed; }
-    .num-btn.taken { background: #47405e; color: #aaa; cursor: not-allowed; }
-    .play-btn {
-      width: 100%; padding: 14px; border: none; border-radius: 14px;
-      background: linear-gradient(90deg, #f59e0b, #ea580c);
-      color: #fff; font-size: 16px; font-weight: 900; cursor: pointer;
+    .num-btn.ai { background: #6b21a8; color: #fff; border-color: #6b21a8; cursor: not-allowed; }
+    .num-btn.taken { background: #9b8eb3; color: #f3effa; cursor: not-allowed; }
+    .start-main-btn {
+      width: 100%; padding: 13px; border: none; border-radius: 12px;
+      background: #d97706; color: #fff; font-size: 15px; font-weight: 900; cursor: pointer;
     }
-    .ai-status {
-      background: #1b1433; border: 1px solid #5b21b6;
-      padding: 10px 12px; border-radius: 12px; font-size: 13px; margin-bottom: 12px;
-      display: flex; justify-content: space-between; align-items: center;
+
+    /* Live Arena View */
+    .stats-strip {
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-bottom: 10px;
     }
-    .ai-alert { color: #f87171; font-weight: 900; }
-    .caller-card {
-      background: linear-gradient(145deg, #241947, #16102b);
-      border: 1px solid #7e22ce; border-radius: 16px; padding: 14px;
-      text-align: center; margin-bottom: 12px;
+    .stat-box {
+      background: #f5effc; border: 1px solid #c6b4e0; border-radius: 8px;
+      padding: 6px 4px; text-align: center;
     }
-    .letter-pills { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 10px; }
-    .lp { padding: 5px 0; border-radius: 8px; font-weight: 900; font-size: 13px; background: #2c2152; color: #c4b5fd; }
-    .lp.active-B { background: #2563eb; color: #fff; }
-    .lp.active-I { background: #dc2626; color: #fff; }
-    .lp.active-N { background: #16a34a; color: #fff; }
-    .lp.active-G { background: #d97706; color: #fff; }
-    .lp.active-O { background: #db2777; color: #fff; }
-    .called-big { font-size: 40px; font-weight: 900; color: #fbbf24; margin: 4px 0; }
-    .history-strip { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
-    .hist-chip { background: #31255c; padding: 4px 8px; border-radius: 8px; font-size: 12px; font-weight: 700; color: #ede9fe; }
-    .board-box {
-      background: #1c1633; border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 14px; padding: 10px; margin-bottom: 12px;
+    .stat-lbl { font-size: 10px; font-weight: 700; color: #4a3f6b; }
+    .stat-val { font-size: 11px; font-weight: 900; color: #1e1830; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .arena-split { display: grid; grid-template-columns: 148px 1fr; gap: 10px; align-items: start; }
+
+    .board75-card {
+      background: #efe8f8; border: 1px solid #c5b2e0; border-radius: 12px; padding: 6px;
     }
-    .board-title { font-weight: 800; margin-bottom: 8px; color: #d8b4fe; display: flex; justify-content: space-between; }
-    .bingo-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
-    .cell {
+    .b75-header { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin-bottom: 4px; }
+    .b75-h {
+      text-align: center; font-size: 11px; font-weight: 900; color: #fff;
+      padding: 4px 0; border-radius: 5px;
+    }
+    .h-B { background: #eab308; }
+    .h-I { background: #16a34a; }
+    .h-N { background: #2563eb; }
+    .h-G { background: #ea580c; }
+    .h-O { background: #9333ea; }
+    .b75-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
+    .b75-cell {
+      font-size: 10px; font-weight: 800; text-align: center; padding: 5px 0;
+      border-radius: 4px; background: #d6c8eb; color: #5b507a;
+    }
+    .b75-cell.called { background: #ea580c; color: #fff; }
+    .b75-cell.latest { background: #16a34a; color: #fff; }
+
+    .right-panel { display: flex; flex-direction: column; gap: 8px; }
+    .current-call-bar {
+      background: #6b1d9b; color: #fff; border-radius: 12px;
+      padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;
+      font-weight: 900; font-size: 16px;
+    }
+    .call-badge-pill {
+      background: #ea580c; color: #fff; padding: 5px 12px;
+      border-radius: 999px; font-size: 15px; font-weight: 900;
+    }
+    .recent-calls-box {
+      background: #ede4f7; border: 1px solid #c5b2e0; border-radius: 12px;
+      padding: 8px; display: flex; justify-content: center; gap: 8px; min-height: 52px; align-items: center;
+    }
+    .rec-orb {
+      width: 44px; height: 44px; border-radius: 999px; display: flex;
+      align-items: center; justify-content: center; font-size: 12px; font-weight: 900; color: #fff;
+    }
+    .rec-0 { background: #7e22ce; }
+    .rec-1 { background: #dc2626; }
+    .rec-2 { background: #2563eb; }
+
+    .controls-strip {
+      display: flex; justify-content: space-between; align-items: center; gap: 6px;
+      background: #f5effc; border: 1px solid #c6b4e0; border-radius: 10px;
+      padding: 7px 10px; font-size: 12px; font-weight: 800;
+    }
+    .mini-ctrl-btn {
+      background: #e2d5f5; border: none; border-radius: 8px;
+      padding: 5px 9px; font-weight: 800; font-size: 12px; cursor: pointer; color: #1e1830;
+    }
+    .auto-toggle {
+      background: #f3e8ff; border: 1px solid #c084fc; border-radius: 999px;
+      padding: 3px 9px; font-size: 11px; font-weight: 900; color: #6b21a8; cursor: pointer;
+    }
+    .auto-toggle.on { background: #16a34a; border-color: #16a34a; color: #fff; }
+
+    .player-area-card {
+      background: #dfd3ee; border: 1px solid #c2aee0; border-radius: 12px;
+      padding: 10px; min-height: 220px;
+    }
+    .wait-msg {
+      text-align: center; padding: 65px 12px; font-weight: 800;
+      color: #2e2447; font-size: 14px; line-height: 1.5;
+    }
+    .my-cartela-box {
+      background: #f7f2fc; border: 1px solid #c2aee0; border-radius: 10px;
+      padding: 8px; margin-bottom: 8px;
+    }
+    .my-cartela-title {
+      display: flex; justify-content: space-between; font-size: 12px;
+      font-weight: 900; color: #5c1b8a; margin-bottom: 6px;
+    }
+    .c5-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+    .c5-cell {
       aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
-      border-radius: 9px; background: #2a204d; font-weight: 800; font-size: 14px;
-      border: 1px solid #433378; cursor: pointer; user-select: none;
+      border-radius: 6px; background: #e8def7; font-weight: 900; font-size: 12px;
+      border: 1px solid #c3b0e0; cursor: pointer; user-select: none;
     }
-    .cell.called-hint { border-color: #fbbf24; box-shadow: inset 0 0 0 1px #fbbf24; }
-    .cell.marked { background: #f59e0b; color: #100c20; border-color: #f59e0b; }
-    .cell.free { background: #16a34a; color: #fff; border-color: #16a34a; }
-    .btn-row { display: flex; gap: 8px; margin-top: 10px; }
-    .sec-btn {
-      flex: 1; padding: 11px 8px; border: none; border-radius: 11px;
-      background: #3b2a70; color: #fff; font-weight: 800; font-size: 12px; cursor: pointer;
+    .c5-cell.marked { background: #ea580c; color: #fff; border-color: #ea580c; }
+    .c5-cell.free { background: #16a34a; color: #fff; border-color: #16a34a; }
+    .c5-cell.win-line { background: #2563eb; color: #fff; border-color: #2563eb; }
+
+    .ai-mini-bar {
+      background: #f3ecfc; border: 1px solid #c5b2e0; border-radius: 10px;
+      padding: 7px 10px; font-size: 12px; font-weight: 800;
+      display: flex; justify-content: space-between; color: #3b2868;
     }
-    .win-btn {
-      flex: 1; padding: 11px 8px; border: none; border-radius: 11px;
-      background: #16a34a; color: #fff; font-weight: 900; font-size: 13px; cursor: pointer;
+
+    .bottom-actions {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: #efe7f8; border-top: 1px solid #c4b0e0;
+      display: grid; grid-template-columns: 1fr 1.2fr 1.2fr; gap: 8px; padding: 8px 10px;
     }
-    .bottom-nav {
-      position: fixed; bottom: 0; left: 0; right: 0; background: #17112b;
-      border-top: 1px solid #32255e; display: flex; justify-content: space-around; padding: 10px 0;
+    .act-leave {
+      background: #dc2626; color: #fff; border: none; border-radius: 8px;
+      padding: 10px; font-weight: 900; font-size: 13px; cursor: pointer;
     }
-    .nav-btn { background: none; border: none; font-weight: 800; color: #ddd6fe; cursor: pointer; font-size: 13px; }
+    .act-refresh {
+      background: #2563eb; color: #fff; border: none; border-radius: 8px;
+      padding: 10px; font-weight: 900; font-size: 13px; cursor: pointer;
+    }
+    .act-bingo {
+      background: #f59e0b; color: #fff; border: none; border-radius: 8px;
+      padding: 10px; font-weight: 900; font-size: 13px; cursor: pointer;
+    }
+    .act-bingo.ready { background: #16a34a; }
   </style>
 </head>
 <body>
   <div class="topbar">
-    <span>🏆 Trust Bingo</span>
-    <div class="top-right">
-      <button class="icon-btn" id="soundBtn">🔊 ON</button>
-      <span class="pill" id="balPill">0.00 ብር</span>
-    </div>
+    <span>Trust Bingo</span>
+    <span class="pill" id="balPill">Balance: 0.00 ብር</span>
   </div>
 
   <div class="container">
+    <!-- LOBBY VIEW -->
     <div id="lobbyView">
-      <div class="timer-banner">
+      <div class="countdown-box">
         <div>
-          <div style="font-size:13px;font-weight:800;">Match Countdown</div>
-          <div style="font-size:12px;color:#c4b5fd;">ካርቴላ ስትይዝ 10s ይቆጠራል • Solo vs AI</div>
+          <div style="font-size:13px;">Match Countdown</div>
+          <div style="font-size:11px;opacity:0.88;">ካርቴላ ስትይዝ ጊዜ ይቆጠራል • Solo vs AI</div>
         </div>
-        <div class="timer-num" id="countdownDisplay">10s</div>
+        <div style="font-size:20px;" id="countdownText">10s</div>
       </div>
 
-      <div class="card">
-        <div class="section-head"><span>1. Stake ምረጥ</span></div>
+      <div class="lobby-card">
+        <div class="lobby-head">
+          <span>1. Stake ምረጥ</span>
+          <span id="lobbyDerash">ደራሽ፦ 0 ብር</span>
+        </div>
         <div class="stakes">
           <button class="stake-btn active" data-stake="10">10 ብር</button>
           <button class="stake-btn" data-stake="20">20 ብር</button>
           <button class="stake-btn" data-stake="50">50 ብር</button>
         </div>
-        <div class="meta-row">
-          <span id="stakeLabel">ወጪ፦ 10 ብር</span>
-          <span id="derashLabel">ደራሽ፦ 0 ብር</span>
-        </div>
       </div>
 
-      <div class="card">
-        <div class="section-head">
-          <span>2. ካርቴላ (#1 - #300)</span>
+      <div class="lobby-card">
+        <div class="lobby-head">
+          <span>2. ካርቴላ ምረጥ (#1 - #300)</span>
           <span id="pickedCount">0 ተመርጧል</span>
         </div>
         <div class="grid-300" id="cartelaGrid"></div>
       </div>
 
-      <button class="play-btn" id="startGameBtn">አሁን ጀምር (Play vs AI)</button>
+      <button class="start-main-btn" id="startGameBtn">ጨዋታ ጀምር (Play)</button>
     </div>
 
+    <!-- LIVE ARENA VIEW -->
     <div id="gameView" style="display:none;">
-      <div class="ai-status">
-        <span>🤖 <b>AI Rival</b> (#<span id="aiCartelaId">-</span>)</span>
-        <span id="aiProgressText">Progress: 1/5</span>
+      <div class="stats-strip">
+        <div class="stat-box"><div class="stat-lbl">Game ID</div><div class="stat-val" id="stGameId">-</div></div>
+        <div class="stat-box"><div class="stat-lbl">Derash</div><div class="stat-val" id="stDerash">0</div></div>
+        <div class="stat-box"><div class="stat-lbl">Players</div><div class="stat-val" id="stPlayers">2</div></div>
+        <div class="stat-box"><div class="stat-lbl">Stake</div><div class="stat-val" id="stStake">10</div></div>
+        <div class="stat-box"><div class="stat-lbl">Called</div><div class="stat-val" id="stCalled">0/75</div></div>
       </div>
 
-      <div class="caller-card">
-        <div class="letter-pills">
-          <span class="lp" id="lp-B">B</span>
-          <span class="lp" id="lp-I">I</span>
-          <span class="lp" id="lp-N">N</span>
-          <span class="lp" id="lp-G">G</span>
-          <span class="lp" id="lp-O">O</span>
+      <div class="arena-split">
+        <div class="board75-card">
+          <div class="b75-header">
+            <div class="b75-h h-B">B</div>
+            <div class="b75-h h-I">I</div>
+            <div class="b75-h h-N">N</div>
+            <div class="b75-h h-G">G</div>
+            <div class="b75-h h-O">O</div>
+          </div>
+          <div class="b75-grid" id="board75Grid"></div>
         </div>
-        <div class="called-big" id="calledNum">READY</div>
-        <div style="font-size:12px;color:#c4b5fd;">ጥሪ፦ <span id="drawIndex">0</span>/75 • ደራሽ፦ <b id="gameDerashText">0 ብር</b></div>
-        <div class="history-strip" id="historyStrip"></div>
-        <div class="btn-row">
-          <button class="sec-btn" id="nextBallBtn">ቀጣይ ጥሪ</button>
-          <button class="sec-btn" id="autoCallBtn">Auto: OFF</button>
-          <button class="win-btn" id="bingoBtn">BINGO!</button>
+
+        <div class="right-panel">
+          <div class="current-call-bar">
+            <span>Current Call</span>
+            <span class="call-badge-pill" id="currentCallPill">-</span>
+          </div>
+
+          <div class="recent-calls-box" id="recentCallsBox"></div>
+
+          <div class="controls-strip">
+            <button class="mini-ctrl-btn" id="soundToggleBtn">🔊 Sound</button>
+            <span id="cartelaBadgeText">Cartela #0</span>
+            <button class="auto-toggle" id="autoMarkBtn">Auto OFF</button>
+          </div>
+
+          <div class="player-area-card" id="playerAreaCard">
+            <div class="wait-msg" id="waitMsgBox">እባክዎ ይህ ጨዋታ እስከሚጨርስ ይጠብቁ</div>
+            <div id="myBoardsList"></div>
+          </div>
+
+          <div class="ai-mini-bar">
+            <span>🤖 AI (#<span id="aiIdText">-</span>)</span>
+            <span id="aiLineText">Line: 1/5</span>
+          </div>
         </div>
       </div>
-
-      <div id="boardsContainer"></div>
-      <button class="sec-btn" style="width:100%;" id="backLobbyBtn">ወደ ሎቢ ተመለስ</button>
     </div>
   </div>
 
-  <div class="bottom-nav">
-    <button class="nav-btn" id="navGame">🎮 Game</button>
-    <button class="nav-btn" id="navClose">✖ Close</button>
+  <div class="bottom-actions" id="bottomBar" style="display:none;">
+    <button class="act-leave" id="leaveBtn">⬅ Leave</button>
+    <button class="act-refresh" id="refreshBtn">↻ Refresh</button>
+    <button class="act-bingo" id="bingoBtn">Bingo!</button>
   </div>
 
   <script>
@@ -195,35 +280,37 @@
 
     let currentStake = 10;
     let myCartelas = [];
+    let takenCartelas = [];
     let aiCartelaId = null;
     let aiCard = null;
     let aiMarked = new Set(['FREE']);
-    let takenCartelas = [];
 
+    let gameId = '';
     let drawOrder = [];
     let calledSet = new Set();
+    let latestNum = null;
     let drawPos = 0;
-    let callHistory = [];
+    let recentCalls = [];
     let currentDerash = 0;
     let activeBoards = [];
-    let gameFinished = false;
-    let soundEnabled = true;
+    let gameEnded = false;
 
-    let countdownSec = 10;
-    let countdownInterval = null;
+    let soundOn = true;
+    let autoMarkOn = false;
     let autoCallTimer = null;
-    let autoCallEnabled = false;
+    let countdownSec = 10;
+    let countdownTimer = null;
 
     function showAlert(msg) {
       if (tg && tg.showAlert) tg.showAlert(msg);
       else alert(msg);
     }
 
-    function updateBalanceText(val) {
-      document.getElementById('balPill').textContent = Number(val || 0).toFixed(2) + ' ብር';
+    function updateBalance(val) {
+      document.getElementById('balPill').textContent = 'Balance: ' + Number(val || 0).toFixed(2) + ' ብር';
     }
 
-    function getBingoLetter(num) {
+    function letterFor(num) {
       if (num <= 15) return 'B';
       if (num <= 30) return 'I';
       if (num <= 45) return 'N';
@@ -231,8 +318,8 @@
       return 'O';
     }
 
-    function speakCall(text) {
-      if (!soundEnabled) return;
+    function speak(text) {
+      if (!soundOn) return;
       try {
         if ('speechSynthesis' in window) {
           window.speechSynthesis.cancel();
@@ -243,43 +330,73 @@
       } catch (e) {}
     }
 
-    function highlightLetter(letter) {
-      ['B', 'I', 'N', 'G', 'O'].forEach((l) => {
-        const el = document.getElementById('lp-' + l);
-        el.className = 'lp' + (l === letter ? ' active-' + l : '');
-      });
-    }
-
     function stopCountdown() {
-      if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+      if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
     }
 
     function startCountdown() {
       stopCountdown();
       countdownSec = 10;
-      document.getElementById('countdownDisplay').textContent = countdownSec + 's';
-      countdownInterval = setInterval(async () => {
+      document.getElementById('countdownText').textContent = countdownSec + 's';
+      countdownTimer = setInterval(async () => {
         if (myCartelas.length === 0) {
           countdownSec = 10;
-          document.getElementById('countdownDisplay').textContent = '10s';
+          document.getElementById('countdownText').textContent = '10s';
           return;
         }
         countdownSec -= 1;
-        document.getElementById('countdownDisplay').textContent = Math.max(0, countdownSec) + 's';
+        document.getElementById('countdownText').textContent = Math.max(0, countdownSec) + 's';
         if (countdownSec <= 0) {
           stopCountdown();
-          await startMatch();
+          await startGame();
         }
       }, 1000);
     }
 
-    function stopAutoCall() {
-      autoCallEnabled = false;
-      document.getElementById('autoCallBtn').textContent = 'Auto: OFF';
+    function stopAutoLoop() {
       if (autoCallTimer) { clearInterval(autoCallTimer); autoCallTimer = null; }
     }
 
-    function buildLocalCartela(id) {
+    function syncAutoMarkOnBoards() {
+      if (!autoMarkOn) return;
+      activeBoards.forEach((b) => {
+        (b._cells || []).forEach((cell) => {
+          const n = Number(cell.dataset.num);
+          if (Number.isFinite(n) && calledSet.has(n)) {
+            cell.classList.add('marked');
+          }
+        });
+      });
+    }
+
+    function renderBoard75() {
+      const grid = document.getElementById('board75Grid');
+      grid.innerHTML = '';
+      for (let row = 0; row < 15; row++) {
+        for (let col = 0; col < 5; col++) {
+          const n = col * 15 + row + 1;
+          const div = document.createElement('div');
+          div.className = 'b75-cell';
+          div.textContent = n;
+          if (n === latestNum) div.classList.add('latest');
+          else if (calledSet.has(n)) div.classList.add('called');
+          grid.appendChild(div);
+        }
+      }
+    }
+
+    function renderRecentCalls() {
+      const box = document.getElementById('recentCallsBox');
+      box.innerHTML = '';
+      recentCalls.slice(0, 3).forEach((item, idx) => {
+        const orb = document.createElement('div');
+        orb.className = 'rec-orb rec-' + (idx % 3);
+        orb.textContent = item.replace('-', '');
+        box.appendChild(orb);
+      });
+    }
+
+    function buildCartelaGrid(id) {
       const ranges = [[1, 15], [16, 30], [31, 45], [46, 60], [61, 75]];
       let s = (id * 7919 + 104729) % 2147483647;
       const rand = () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
@@ -301,20 +418,20 @@
       return card;
     }
 
-    function hasWinningLine(card, markedSet) {
-      for (let r = 0; r < 5; r++) {
-        if ([0, 1, 2, 3, 4].every((c) => markedSet.has(String(card[r][c])))) return true;
+    function findWinningIndices(card, markedSet) {
+      const lines = [];
+      for (let r = 0; r < 5; r++) lines.push([0,1,2,3,4].map((c) => [r, c]));
+      for (let c = 0; c < 5; c++) lines.push([0,1,2,3,4].map((r) => [r, c]));
+      lines.push([0,1,2,3,4].map((i) => [i, i]));
+      lines.push([0,1,2,3,4].map((i) => [i, 4 - i]));
+      for (const line of lines) {
+        if (line.every(([r, c]) => markedSet.has(String(card[r][c])))) return line;
       }
-      for (let c = 0; c < 5; c++) {
-        if ([0, 1, 2, 3, 4].every((r) => markedSet.has(String(card[r][c])))) return true;
-      }
-      if ([0, 1, 2, 3, 4].every((i) => markedSet.has(String(card[i][i])))) return true;
-      if ([0, 1, 2, 3, 4].every((i) => markedSet.has(String(card[i][4 - i])))) return true;
-      return false;
+      return null;
     }
 
-    function verifyPlayerBingo() {
-      return activeBoards.some((b) => {
+    function checkPlayerWinAndHighlight() {
+      for (const b of activeBoards) {
         const card = b.card || [];
         const marked = new Set(['FREE']);
         const cells = b._cells || [];
@@ -322,18 +439,25 @@
           for (let c = 0; c < 5; c++) {
             const val = card[r][c];
             if (val === 'FREE') continue;
-            const cellEl = cells[r * 5 + c];
-            if (cellEl && cellEl.classList.contains('marked') && calledSet.has(Number(val))) {
+            const el = cells[r * 5 + c];
+            if (el && el.classList.contains('marked') && calledSet.has(Number(val))) {
               marked.add(String(val));
             }
           }
         }
-        return hasWinningLine(card, marked);
-      });
+        const winLine = findWinningIndices(card, marked);
+        if (winLine) {
+          winLine.forEach(([r, c]) => {
+            if (cells[r * 5 + c]) cells[r * 5 + c].classList.add('win-line');
+          });
+          return true;
+        }
+      }
+      return false;
     }
 
-    function updateAiProgress(num) {
-      if (!aiCard || gameFinished) return;
+    function stepAi(num) {
+      if (!aiCard || gameEnded) return;
       for (let r = 0; r < 5; r++) {
         for (let c = 0; c < 5; c++) {
           if (aiCard[r][c] === num) aiMarked.add(String(num));
@@ -341,41 +465,32 @@
       }
       let best = 0;
       for (let r = 0; r < 5; r++) {
-        const cnt = [0, 1, 2, 3, 4].filter((c) => aiMarked.has(String(aiCard[r][c]))).length;
+        const cnt = [0,1,2,3,4].filter((c) => aiMarked.has(String(aiCard[r][c]))).length;
         if (cnt > best) best = cnt;
       }
       for (let c = 0; c < 5; c++) {
-        const cnt = [0, 1, 2, 3, 4].filter((r) => aiMarked.has(String(aiCard[r][c]))).length;
+        const cnt = [0,1,2,3,4].filter((r) => aiMarked.has(String(aiCard[r][c]))).length;
         if (cnt > best) best = cnt;
       }
-      const progEl = document.getElementById('aiProgressText');
-      if (best === 4) {
-        progEl.innerHTML = '<span class="ai-alert">1 AWAY! 🔥</span>';
-      } else {
-        progEl.textContent = 'Progress: ' + best + '/5';
-      }
+      document.getElementById('aiLineText').textContent = best === 4 ? '1 AWAY! 🔥' : 'Line: ' + best + '/5';
 
-      if (hasWinningLine(aiCard, aiMarked)) {
-        gameFinished = true;
-        stopAutoCall();
-        speakCall('AI wins Bingo');
-        showAlert('🤖 AI BINGO! በዚህ ዙር AI ቀድሞ ቢንጎ አሸነፈ። እንደገና ሞክር!');
+      if (findWinningIndices(aiCard, aiMarked)) {
+        gameEnded = true;
+        stopAutoLoop();
+        speak('AI wins Bingo');
+        showAlert('🤖 AI ቀድሞ BINGO አሸነፈ! እንደገና ለመጫወት Leave ብለህ ሞክር።');
       }
     }
 
-    async function loadState() {
+    async function loadLobby() {
       const res = await fetch('/api/state?userId=' + encodeURIComponent(userId) + '&stake=' + currentStake);
       const data = await res.json();
-      updateBalanceText(data.balance);
+      updateBalance(data.balance);
       takenCartelas = (data.room && data.room.takenCartelas) || [];
       const derash = (data.room && data.room.derash) || 0;
-      document.getElementById('stakeLabel').textContent = 'ወጪ፦ ' + currentStake + ' ብር';
-      document.getElementById('derashLabel').textContent = 'ደራሽ፦ ' + derash + ' ብር';
+      document.getElementById('lobbyDerash').textContent = 'ደራሽ፦ ' + derash + ' ብር';
       document.getElementById('pickedCount').textContent = myCartelas.length + ' ተመርጧል';
-      renderCartelaGrid();
-    }
 
-    function renderCartelaGrid() {
       const grid = document.getElementById('cartelaGrid');
       grid.innerHTML = '';
       for (let i = 1; i <= 300; i++) {
@@ -391,224 +506,22 @@
           btn.classList.add('taken');
           btn.disabled = true;
         }
-        btn.addEventListener('click', () => onTakeCartela(i));
+        btn.addEventListener('click', () => takeCartela(i));
         grid.appendChild(btn);
       }
     }
 
-    async function onTakeCartela(cartelaId) {
-      if (myCartelas.includes(cartelaId)) return;
+    async function takeCartela(id) {
+      if (myCartelas.includes(id)) return;
       const res = await fetch('/api/take-cartela', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, stake: currentStake, cartelaId })
+        body: JSON.stringify({ userId, stake: currentStake, cartelaId: id })
       });
       const data = await res.json();
       if (!res.ok) return showAlert(data.error || 'ካርቴላ መያዝ አልተቻለም');
 
-      myCartelas.push(cartelaId);
+      myCartelas.push(id);
       if (!aiCartelaId) {
-        let candidate = ((cartelaId * 43 + 17) % 300) + 1;
-        if (myCartelas.includes(candidate)) candidate = (candidate % 300) + 1;
-        aiCartelaId = candidate;
-      }
-      updateBalanceText(data.balance);
-      takenCartelas = (data.room && data.room.takenCartelas) || takenCartelas;
-      const derash = (data.room && data.room.derash) || 0;
-      document.getElementById('derashLabel').textContent = 'ደራሽ፦ ' + derash + ' ብር';
-      document.getElementById('pickedCount').textContent = myCartelas.length + ' ተመርጧል';
-      renderCartelaGrid();
-      startCountdown();
-    }
-
-    async function startMatch() {
-      if (myCartelas.length === 0) return showAlert('መጀመሪያ ቢያንስ አንድ ካርቴላ ያዝ።');
-      stopCountdown();
-      const res = await fetch('/api/start-game', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, stake: currentStake, cartelaIds: myCartelas })
-      });
-      const data = await res.json();
-      if (!res.ok) return showAlert(data.error || 'ጨዋታ መጀመር አልተቻለም');
-
-      drawOrder = data.drawOrder || [];
-      calledSet = new Set();
-      drawPos = 0;
-      callHistory = [];
-      gameFinished = false;
-      currentDerash = data.derash || 0;
-      activeBoards = data.boards || [];
-      myCartelas = [];
-
-      const chosenAiId = aiCartelaId || 88;
-      aiCard = buildLocalCartela(chosenAiId);
-      aiMarked = new Set(['FREE']);
-      document.getElementById('aiCartelaId').textContent = chosenAiId;
-      document.getElementById('aiProgressText').textContent = 'Progress: 1/5';
-
-      highlightLetter('');
-      document.getElementById('gameDerashText').textContent = currentDerash + ' ብር';
-      document.getElementById('calledNum').textContent = 'READY';
-      document.getElementById('drawIndex').textContent = '0';
-      document.getElementById('historyStrip').innerHTML = '';
-      renderBoards();
-
-      document.getElementById('lobbyView').style.display = 'none';
-      document.getElementById('gameView').style.display = 'block';
-    }
-
-    function refreshBoardHints(num) {
-      activeBoards.forEach((b) => {
-        (b._cells || []).forEach((cell) => {
-          if (Number(cell.dataset.val) === num) {
-            cell.classList.add('called-hint');
-          }
-        });
-      });
-    }
-
-    function callNextBall() {
-      if (gameFinished) return;
-      if (drawPos >= drawOrder.length) {
-        stopAutoCall();
-        return showAlert('ሁሉም 75 ቁጥሮች ተጠርተዋል።');
-      }
-      const num = drawOrder[drawPos++];
-      calledSet.add(num);
-      const letter = getBingoLetter(num);
-      const label = letter + '-' + num;
-      callHistory.unshift(label);
-      if (callHistory.length > 6) callHistory.pop();
-
-      highlightLetter(letter);
-      document.getElementById('calledNum').textContent = label;
-      document.getElementById('drawIndex').textContent = String(drawPos);
-      document.getElementById('historyStrip').innerHTML = callHistory
-        .map((item) => '<span class="hist-chip">' + item + '</span>')
-        .join('');
-
-      refreshBoardHints(num);
-      speakCall(letter + ' ' + num);
-      updateAiProgress(num);
-    }
-
-    function renderBoards() {
-      const container = document.getElementById('boardsContainer');
-      container.innerHTML = '';
-      activeBoards.forEach((b) => {
-        const box = document.createElement('div');
-        box.className = 'board-box';
-        box.innerHTML =
-          '<div class="board-title"><span>Cartela #' + b.id + '</span><span>5 in a Row = BINGO</span></div>' +
-          '<div class="letter-pills"><span class="lp">B</span><span class="lp">I</span><span class="lp">N</span><span class="lp">G</span><span class="lp">O</span></div>';
-
-        const grid = document.createElement('div');
-        grid.className = 'bingo-grid';
-        b._cells = [];
-
-        (b.card || []).forEach((row) => {
-          row.forEach((val) => {
-            const cell = document.createElement('div');
-            cell.className = 'cell';
-            cell.dataset.val = String(val);
-            cell.textContent = val;
-            if (val === 'FREE') {
-              cell.classList.add('free', 'marked');
-            } else {
-              cell.addEventListener('click', () => {
-                if (!calledSet.has(Number(val))) {
-                  return showAlert('ቁጥር ' + val + ' ገና አልተጠራም!');
-                }
-                cell.classList.toggle('marked');
-              });
-            }
-            b._cells.push(cell);
-            grid.appendChild(cell);
-          });
-        });
-
-        box.appendChild(grid);
-        container.appendChild(box);
-      });
-    }
-
-    document.getElementById('soundBtn').addEventListener('click', () => {
-      soundEnabled = !soundEnabled;
-      document.getElementById('soundBtn').textContent = soundEnabled ? '🔊 ON' : '🔇 OFF';
-    });
-
-    document.querySelectorAll('.stake-btn').forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        if (myCartelas.length > 0) return showAlert('በዚህ ዙር የተያዘ ካርቴላ አለህ።');
-        document.querySelectorAll('.stake-btn').forEach((b) => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentStake = Number(btn.dataset.stake);
-        await loadState();
-      });
-    });
-
-    document.getElementById('startGameBtn').addEventListener('click', startMatch);
-    document.getElementById('nextBallBtn').addEventListener('click', callNextBall);
-
-    document.getElementById('autoCallBtn').addEventListener('click', () => {
-      if (autoCallEnabled) {
-        stopAutoCall();
-      } else {
-        autoCallEnabled = true;
-        document.getElementById('autoCallBtn').textContent = 'Auto: ON';
-        callNextBall();
-        autoCallTimer = setInterval(() => {
-          if (gameFinished || drawPos >= drawOrder.length) stopAutoCall();
-          else callNextBall();
-        }, 2400);
-      }
-    });
-
-    document.getElementById('bingoBtn').addEventListener('click', async () => {
-      if (gameFinished) return;
-      if (currentDerash <= 0) return showAlert('የደራሽ ሽልማት የለም።');
-      if (!verifyPlayerBingo()) {
-        return showAlert('ገና ሙሉ 5 በአንድ መስመር (Row / Column / Diagonal) የተጠሩ ቁጥሮች አልሞሉም!');
-      }
-
-      const res = await fetch('/api/claim-win', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, reward: currentDerash })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        gameFinished = true;
-        stopAutoCall();
-        updateBalanceText(data.balance);
-        speakCall('Bingo! You win!');
-        showAlert('🎉 BINGO! +' + currentDerash + ' ብር ወደ Main Wallet ገባ!');
-        currentDerash = 0;
-        document.getElementById('gameDerashText').textContent = '0 ብር';
-      }
-    });
-
-    document.getElementById('backLobbyBtn').addEventListener('click', async () => {
-      stopAutoCall();
-      stopCountdown();
-      document.getElementById('gameView').style.display = 'none';
-      document.getElementById('lobbyView').style.display = 'block';
-      await loadState();
-    });
-
-    document.getElementById('navGame').addEventListener('click', () => {
-      stopAutoCall();
-      document.getElementById('gameView').style.display = 'none';
-      document.getElementById('lobbyView').style.display = 'block';
-      loadState();
-    });
-
-    document.getElementById('navClose').addEventListener('click', () => {
-      if (tg && tg.close) tg.close();
-    });
-
-    loadState();
-  </script>
-</body>
-</html>
+        let cand = ((id * 29 + 13) % 300) + 1;
+        if (myCartelas.includes(cand)) cand = (cand % 30
